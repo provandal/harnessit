@@ -1,0 +1,186 @@
+HarnessIT
+Build Plan and Capture Protocol
+How we build the system, and how we capture what we learn while building it
+Draft v0.2
+provandal.dev
+Companion to: HarnessIT Architecture Overview v0.4
+1. The Premise of This Document
+The HarnessIT architecture document defines what we are building. It does not say how we build it, in what order, or how we capture what we learn while building it. This document fills that gap.
+It deliberately does not include a detailed editorial plan for the eventual blog series. Detailed editorial plans written before the build is complete are wrong in specific, unpredictable ways. They tend to either constrain the build (forcing reality to fit the planned narrative) or get thrown away when the build reveals things the plan did not anticipate. We will write the series after the build, when we know what actually happened.
+What this document does instead is define three things, in order of fidelity:
+A high-fidelity build sequence for the order in which components get built and what is true at each tagged commit. Technical dependencies are real and worth getting right.
+A high-fidelity collaboration and capture protocol for how the three of us — Erik, Claude (chat collaborator), and Claude Code (builder) — work together, and how we record what happens so we have material to write from later. This is the longest section because it is the operating system for the whole project.
+A low-fidelity, explicitly provisional editorial sketch with rough thematic groupings as a working hypothesis. Labeled as provisional throughout because it will change as the build teaches us more.
+Build first. Capture while building. Structure the writing when the building is done.
+2. Build Sequence
+HarnessIT is built in eight stages. Each stage produces something runnable. Each stage ends at a tagged commit that the next stage builds on. Stages are sequenced by technical dependency: nothing in a later stage requires anything that has not yet been built.
+The sequence intentionally introduces eval discipline early (stage 2, not the end), so that every subsequent component change can be measured against it. This is a deviation from a naive "build everything, then add discipline" sequence, and it is deliberate. Discipline is cheaper to install early than to retrofit late.
+2.1 Stage Map
+Stage
+Name
+What is true at the end of this stage
+0
+Foundations
+Repositories created (HarnessIT, TheConstruct, Doppelgänger). Self-hosted Langfuse instance running locally with documented setup. RememberIT contexts provisioned (harnessit-agent-memory, harnessit-build-journal). Architecture document published. Build plan published. Working journal initialized in RememberIT. Conventions documented in CONTRIBUTING files.
+1
+Doppelgänger v0.1
+Local fabric simulator runs. Models a small leaf-spine RoCE topology. Supports scripted failure injection for at least three failure classes (link, queue, congestion). Exposes a query interface. The simulator is runnable standalone before any harness work begins.
+2
+Naked model + Langfuse + first eval
+A frontier base model is wired in with a basic system prompt. Langfuse instrumentation is in place from the very first model call: every span is captured. The first eval scenario runs end-to-end and the model fails it visibly. Eval framework exists (scenario format, runner, scoring). The eval set has at least one scenario. We can see traces in Langfuse's standard waterfall view and we can measure whether subsequent changes help.
+3
+Tool surface
+MCP tool surface implemented with read tools against Doppelgänger. The agent can query topology, fetch counters, read configs, tail logs. The eval scenario from stage 2 now passes some fraction of runs because the agent has reach. Every tool call emits an OTel span to Langfuse. Tool conventions documented (response envelope, freshness metadata).
+4
+Trajectory viewer v0.1
+The sequence-diagram trajectory viewer ships. Queries Langfuse via API, transforms spans into the sequence diagram representation, renders investigations as services-as-columns with time flowing down. From this point forward, every behavior change in the agent is visible in the viewer. The killer feature ships early so we can use it throughout the rest of the build.
+5
+First skill
+TheConstruct repository contains its first skill, loaded by the harness when the matching task class is detected. The agent's behavior on that task class is visibly more disciplined, observable in both eval scores and the trajectory viewer. Skill format chosen and documented (decision empirical, made here).
+6
+Retrieval
+RAG over a starter knowledge corpus (RFCs and a small runbook collection). The agent can look up protocol semantics it does not already know. Retrieval is observably distinct from skills — facts versus procedures. Eval scenarios added that require retrieval to pass.
+7
+Memory via RememberIT
+Two-tier memory implemented over the harnessit-agent-memory RememberIT context. Short-term holds the active investigation; long-term accumulates across sessions. Memory consultation is visible in the trajectory viewer. The agent recognizes a recurring symptom from a prior session in at least one eval scenario.
+8
+CSM and screen capture
+Context State Manager owns the context window. Token budgets per content class enforced. Screen capture is wired in as consent-mediated, on-demand. The eval set includes a scenario where a screenshot input is required. The marquee build milestone for the architecture's most distinctive components.
+9
+Orchestration: ReAct + Planner-Actor
+ReAct is the default loop. Planner-Actor activates when the next proposed action exceeds a blast-radius threshold, with a verification ReAct loop wrapped around each plan step. Action gates implemented. The agent can propose changes, get them approved, apply them, verify, and roll back on regression.
+10
+Multi-agent decomposition
+Orchestration layer routes work across at least two specialized agents (planner and executor at minimum). Inter-agent messaging is structured, not free-form. The architecture supports more agents; v1 ships with the minimum that demonstrates the pattern.
+11
+Security and guardrails
+All five security posture commitments are enforced in code, not just documented. Adversarial input handling is in place for retrieval, tool outputs, and screen captures. Memory and trajectory protection is active. Eval set includes adversarial scenarios.
+12
+Eval dashboard + kickoff panel
+The remaining UI components ship. Eval dashboard shows pass/fail/regression status across versions, eval set growth over time. Kickoff panel allows new investigations to start with low friction. The system is now demonstrable end-to-end with a complete UI.
+13
+AIR adapter
+HarnessIT runs against a real Cumulus fabric in NVIDIA AIR via an adapter that satisfies the same interface Doppelgänger does. The harness does not know which substrate it is talking to. The credibility moment.
+2.2 What This Sequence Optimizes For
+Runnable at every stage. There is no point in the build where the system is broken because of a half-finished refactor. Every tagged commit is a coherent state.
+Eval-measurable from stage 2. Once Langfuse is instrumented and the eval framework exists, every subsequent stage produces measurable behavior change. We see whether each new component actually helps.
+Trajectory viewer early. Stage 4 ships the sequence-diagram trajectory viewer. From that point forward, every behavior change is visible, not just measurable. We can use the viewer to debug the rest of the build, not just to demonstrate it at the end. This is a deliberate departure from the naive ordering that would build the UI last.
+Marquee moment placement. Stage 8 (CSM + screen capture) is the build's most pedagogically important moment for the architecture's most distinctive components. It earns its weight because of what comes before. Stage 13 (AIR) is the credibility moment that demonstrates HarnessIT against a real fabric.
+Security in the sequence, not at the end. Stage 11 places security after most components exist (so the threat surface is real to test against) but before the final demonstration stage (so we are not demonstrating an insecure system). Some security work happens earlier in lighter form — basic least-privilege from stage 3, basic redaction from stage 7 — but the comprehensive security pass is stage 11.
+Substrate dependencies provisioned at stage 0. Self-hosted Langfuse and RememberIT contexts are stood up before any harness work begins. This forces us to encounter their real operational characteristics from day one rather than discovering setup pain late.
+2.3 What This Sequence Does Not Promise
+The sequence does not promise that each stage takes the same amount of time. Stage 1 (Doppelgänger v0.1) is probably weeks. Stage 2 (naked model) is probably a day. Stage 7 (CSM) is probably weeks. Stage 12 (AIR adapter) might be days or might surface enough divergence to be its own multi-week effort.
+The sequence also does not promise that we get every stage right on the first try. Some stages will produce a v0.1 that we end up rebuilding after a later stage reveals a design problem. The build sequence is the intended order; the working journal will record where reality diverged from intent.
+3. Collaboration and Capture Protocol
+This is the longest section in the document because it defines the operating model for the whole project. The build sequence above is technical; this section is operational.
+3.1 The Three-Way Collaboration
+Three participants, three distinct roles:
+Erik. Architect, decider, operator. Makes design calls and runs Claude Code. The only participant with persistent memory across the whole project.
+Claude (chat collaborator). Design partner, document author, structural thinker. Lives in chat sessions with rich context but no direct repository access. Sees what is pasted or uploaded, not what is on disk.
+Claude Code (builder). Implements the actual code, runs tests, produces artifacts. Works inside the repository with file-level visibility. Stateless across sessions; oriented at the start of each session by a brief.
+The fault line that matters: Claude Code knows what got built. Claude (chat) knows why we wanted to build it. Erik knows both, and is the bottleneck for translating between us. The capture protocol exists to widen that bottleneck.
+3.2 The Working Journal
+The journal is the canonical shared artifact across all three participants. It is stored in RememberIT under the harnessit-build-journal context, with a small mirror to a markdown file in the repository for offline browsing and search.
+Why RememberIT, not just a flat file. RememberIT is already the agent's memory substrate (under a separate context, harnessit-agent-memory). Using it for the build journal as well means one substrate, one set of access patterns, one operational story to learn. Both Erik and Claude Code can write to the journal through the RememberIT MCP interface; both Claude (chat) and the agent itself can read from it. The repository mirror exists for cases where you want to grep the journal offline.
+Two contexts, one substrate. The harnessit-agent-memory context holds operational memory consulted by the agent during investigations. The harnessit-build-journal context holds build-process capture (decisions, surprises, insights). Same substrate, separate namespaces. Mixing them would create noise: agent memory consultations would sift through build commentary, and build journal queries would surface operational fabric data that is not relevant.
+Format. Append-only entries, each with a date and a short header. Entries can be of any of these types:
+Build. Something was built or changed in code. Usually harvested from commit messages.
+Decision. A design decision was made. Captures the decision, the alternatives considered, and the reasoning.
+Surprise. Something happened we did not expect — a failure, an unexpected behavior, a moment where the framing shifted.
+Insight. A realization that crystallized while doing the work. Often the most valuable entries; also the easiest to lose if not captured immediately.
+Question. Something we do not yet know how to answer, written down so we do not forget it.
+A minimal entry template:
+## 2026-MM-DD — [Type]: Short titleWhat happened or what was decided.(For decisions: what alternatives were considered.)(For surprises: what we expected vs. what occurred.)(For insights: what changed in the framing.)Refs: commit hash if applicable, related entries if applicable.
+Why append-only. Reorganization can happen later. The goal during build is capture, not curation. An append-only journal preserves the temporal sequence, which is itself information — the order in which things were learned matters when we eventually write the series.
+3.3 Standing Convention with Claude Code
+Claude Code is a capable builder but tends to optimize for "did the code work" over "did we capture why we made this choice." The convention below shifts that default.
+Convention 1: WHY blocks in non-trivial commits.
+Every non-trivial commit includes a WHY: block in the commit message. The block captures intent and considered alternatives. Trivial commits (typo fixes, formatting, minor refactors) are exempt.
+feat(csm): add per-class token budget enforcementImplements the token budget tracking described inarchitecture section 3.5. Budgets per content classare configurable; defaults set in config/csm-budgets.yaml.WHY: Without enforced budgets, the context window growsmonotonically until it crashes the model call. Tried aglobal budget first; that worked but made it impossibleto reason about which content class was crowding othersout. Per-class budgets give us levers to tune.Considered: a single global budget with priority weightsper class. Rejected because debugging "why was thisevicted" is harder when everything is competing in onepool.
+WHY blocks get harvested into the journal as Decision entries during the weekly capture pass.
+Convention 2: Session briefs.
+Every Claude Code session begins with a short brief from Erik. The brief states where we are in the build sequence, what the immediate goal is, and any constraints Claude Code needs to know. The brief is short; it does not try to re-explain the whole architecture.
+A minimal session brief template:
+We are at stage [N] of the HarnessIT build.Just completed: [what was true at the end of the last session]Today's goal: [what we want to accomplish in this session]Constraints to know: [security boundaries, design conventions,anything specific to this stage]Reference: see /docs/architecture-overview.md for the full design.Recent journal entries: see /journal.md for the last week.
+The brief lives in the session as the first message Erik sends. Over time, the briefs themselves become artifacts in the journal — they record what was attempted in each session, separately from what was achieved.
+Convention 3: Failure capture.
+When something fails in a non-trivial way during a Claude Code session — an approach that did not work, a test that surfaced an unexpected requirement, a refactor that revealed an architectural problem — Claude Code emits a short failure note that becomes a Surprise entry in the journal. Failure notes do not block the work; they are written alongside the fix or the pivot.
+3.4 Standing Convention with Claude (chat)
+Chat sessions produce different material than build sessions. They are where design happens, where pushback occurs, where reframings emerge. The conventions below capture that material in journal-ready form.
+Convention 1: Decision summaries.
+When a chat session produces a design decision — large or small — Claude produces a decision summary at the end in a format ready to drop into the journal. The summary names the decision, the alternatives considered, the reasoning, and any remaining caveats. Erik copies it into journal.md.
+This is something we have already been doing implicitly throughout the HarnessIT design conversation. The convention is to make it explicit and consistent: at the end of any session that produced a decision, the decision summary appears as the closing artifact.
+Convention 2: Reframing markers.
+When a conversation produces a moment where the framing of the problem shifts — like the moment when this document's premise shifted from "detailed editorial plan" to "build first, capture during, write later" — Claude flags it explicitly as a reframing moment. These become Insight entries in the journal.
+Convention 3: Document outputs as journal entries.
+When chat sessions produce documents (architecture revisions, plans, sketches), the documents themselves get committed to the repository, and the journal entry for that session links to the commit. The journal does not duplicate the document; it points to it with context for why this version was produced.
+3.5 Erik's Capture Discipline
+The most valuable journal material often comes from Erik's unprompted observations — the moments when something surprised him, when an approach failed unexpectedly, when an insight crystallized. These are also the easiest to lose because they happen in the gaps between formal sessions.
+The lightweight discipline: voice notes. Speaking is faster than typing and captures texture that gets lost in formal writeups. Voice notes get transcribed and added to the journal as Insight or Surprise entries. The transcription does not need to be polished; the goal is capture, not literature.
+The other lightweight discipline: "this matters" tagging. During chat sessions, when something Claude says lands as particularly useful, Erik can mark it for the journal with a short tag like "journal: insight" or "journal: decision." Claude responds by producing the journal-ready version of that material at the end of the session.
+3.6 Architecture Decision Records (ADRs)
+Most journal entries are conversational. Some decisions deserve more formal treatment — the ones we will want to find and reference specifically later. These get a separate, lightweight ADR.
+Format. Numbered markdown files in /docs/adrs/, e.g., 0003-orchestration-blast-radius.md. Short. Title, context, decision, consequences. The format matters less than the discipline of writing one at all.
+When to write one. When the decision will shape later work in ways that need to be defended or revisited. Not for every choice. A rough rule: if you imagine someone six months from now asking "why did we do this," and the journal entry would be insufficient, write an ADR.
+Expected count. Maybe a dozen across the whole project. ADRs are scarce by design.
+3.7 The Per-Section Consolidation Pass
+After each major build section completes (typically a stage from section 2 of this document, sometimes a cluster of related stages), Erik runs a consolidation pass. This is not a calendar discipline; it is a build-aligned discipline.
+What happens in a consolidation pass:
+Read through all journal entries since the last consolidation.
+Identify the entries that turned out to be important in retrospect. Mark them or pull them into a per-section summary.
+Notice patterns. Multiple Surprise entries that share a theme are signal. Multiple Decisions that were later revised are signal.
+Update the architecture document if the build revealed something the architecture got wrong or oversimplified.
+Identify ADR-worthy decisions that did not get an ADR at the time. Write them now if they still matter.
+Note any Questions that are still unanswered. Some will become work items; some will become open questions in the architecture document.
+The consolidation pass produces a per-section summary stored in RememberIT under harnessit-build-journal with a summary tag. These summaries are what we will draw on heavily when we sit down to write the blog series after the build is done. The repository mirror also gets a /journal/summaries/section-N.md file for offline reference.
+3.8 What This Adds Up To
+If all the conventions above are followed lightly and consistently, here is what the project will have at the end of the build, ready to write from:
+A complete working journal capturing the full build narrative in temporal sequence.
+Per-section summaries that distill the journal into the patterns that mattered.
+A dozen or so ADRs covering the decisions worth defending in detail.
+Commit history with WHY blocks providing intent alongside the diff.
+Updated architecture documentation reflecting what was learned during build.
+Trajectories from real eval runs at every stage, showing the agent's behavior evolving.
+Surprise entries documenting where reality diverged from intent — the highest-value material for the eventual series.
+Writing the series from this material is editorial work on existing artifacts, not reconstruction of forgotten thinking. That is the entire point of the capture protocol.
+4. Provisional Editorial Sketch
+This section is explicitly provisional. It is a working hypothesis for the eventual series shape, useful for guiding what we capture during the build. It will change. Treating any of the specifics as commitments would be a mistake.
+4.1 Working Hypothesis: Six Acts
+The series probably wants to be organized into roughly six acts, each containing several posts. The act-level structure is more durable than the post-level structure, which is why this sketch lives at the act level.
+Act
+Theme
+What the reader learns
+0
+Why we are here
+The framing post. What HarnessIT is, why fine-tuning is the wrong primary investment, what the reader is signing up for, what the running example is.
+I
+Sensing and seeing
+The naked model. The first tool. Many tools and the planning gap. The first skill and the leverage it provides. By the end of this act, the reader has seen the agent become coherent.
+II
+Knowing and remembering
+Retrieval as distinct from skills. Memory across sessions. The marquee post on CSM and screen capture. By the end, the reader has seen the agent compound across sessions and reason about visual input.
+III
+Acting safely
+Gated action. ReAct as default; Planner-Actor for high-blast-radius work; verification ReAct loops wrapping plan steps. Multi-agent decomposition. By the end, the agent can propose, plan, execute, verify, and roll back.
+IV
+Securing and trusting
+The full security treatment. Guardrails distinct from gates. Adversarial inputs. Memory and trajectory as security artifacts. The substrate trust boundary.
+V
+Discipline and demonstration
+Evals as the only honest answer to "is the harness getting better." Trajectories as audit trail and teaching artifact. The trajectory viewer. Running HarnessIT against NVIDIA AIR. What we learned. What is next.
+4.2 Why This Sketch Is Useful Even Though It Will Change
+Three reasons to have a sketch even though we know it is provisional:
+It shapes capture. If we know the series will probably have an act on memory and remembering, we pay closer attention to the moments when memory behavior changes. Without any editorial sketch, capture is unfocused.
+It catches gaps early. If a planned act has nothing in it after a build stage that should have produced material for it, that is signal. Either the act is wrong, or the build is missing something, or we under-captured. The sketch creates the contrast that surfaces the problem.
+It invites reframing. When the build reveals that two acts should be merged, or that a missing act needs to be added, the sketch's existence is what makes that reframing visible. You cannot reframe the absence of a structure.
+4.3 What We Are Deliberately Not Deciding
+Post count per act. Some acts will probably be one post; some will be three or four. We will know once the material exists.
+Post titles. These come last, after the content is written and the post's actual argument is known.
+Post-level theses. Same reason. The thesis emerges from the writing, not the planning.
+Publishing cadence. Writing-after-building means the series gets written in a burst once the build is done. Whether that burst publishes weekly, biweekly, or all at once is a decision for then.
+4.4 The One Editorial Decision Worth Making Now
+We have agreed the series will be fully linear (no parallel tracks, no branching). This shapes capture: every entry should be evaluable for "where does this fit in the linear sequence," and entries that do not have an obvious place are flagged for the consolidation pass. Linear narrative discipline starts at capture.
+5. Closing
+This document defines the working model for HarnessIT through the build phase. The build sequence (section 2) tells us what to build and in what order. The collaboration and capture protocol (section 3) tells us how the three of us work together and how we record what we learn. The provisional editorial sketch (section 4) gives us a working hypothesis for the eventual series, useful for guiding capture without constraining it.
+With this document and the architecture overview in place, the third foundational deliverable — the Doppelgänger design document — is the next thing to produce. After that, the build begins.
+The plan is the scaffold. The journal is the truth.
