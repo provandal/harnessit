@@ -29,3 +29,14 @@ Thumbs.db
 # Word lock files
 ~$*.docx
 ~$*.doc
+
+# Corpus runtime artifacts (generated at stage 6+, not committed)
+corpus/embeddings/
+corpus/cache/
+corpus/.faiss/
+corpus/.chroma/
+
+# Credentials (never commit)
+.env
+*.key
+.langfuse-credentials
