@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "harnessit"
+version = "0.1.0.dev0"
+description = "An agentic harness for the network domain"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Erik Smith"},
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+]
+
+dependencies = [
+    "anthropic>=0.40",
+    "langfuse>=4.0",
+    "mcp>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-asyncio>=0.23",
+]
+
+[project.urls]
+Homepage = "https://github.com/provandal/harnessit"
+Substrate = "https://github.com/provandal/doppelganger"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "requires_substrate: marks tests that need the doppelganger-substrate Docker image and Doppelgänger MCP adapter",
+    "requires_anthropic: marks tests that hit the live Anthropic API (needs ANTHROPIC_API_KEY)",
+    "requires_langfuse: marks tests that hit the live Langfuse Cloud project",
+]

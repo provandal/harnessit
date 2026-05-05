@@ -40,3 +40,11 @@ corpus/.chroma/
 .env
 *.key
 .langfuse-credentials
+.anthropic-credentials
+
+# Pytest
+.pytest_cache/
+
+# Trace artifacts (generated at run time)
+runs/
+traces/
