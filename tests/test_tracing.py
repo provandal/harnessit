@@ -12,17 +12,9 @@ from dataclasses import dataclass
 from typing import Any
 
 import pytest
-from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
-    InMemorySpanExporter,
-)
 
-from harnessit.config import Settings
 from harnessit.model import Completion, ModelClient
-from harnessit.tracing import (
-    GENERATION_SPAN_NAME,
-    init_langfuse,
-    traced_complete,
-)
+from harnessit.tracing import GENERATION_SPAN_NAME, traced_complete
 
 
 @dataclass
@@ -70,40 +62,7 @@ def _model_client(text: str = "ack", model: str = "claude-opus-4-7") -> ModelCli
     )
 
 
-@pytest.fixture(scope="session")
-def in_memory_exporter() -> InMemorySpanExporter:
-    """Initialize Langfuse with an in-memory OTel exporter, once per session.
-
-    The Langfuse client is a singleton keyed by public_key, so this
-    fixture initializes it the first time and the same exporter is
-    reused for every test.
-    """
-    exporter = InMemorySpanExporter()
-    settings = Settings(
-        anthropic_api_key="sk-ant-test",
-        langfuse_secret_key="sk-lf-test",
-        langfuse_public_key="pk-lf-harnessit-tracing-tests",
-        langfuse_base_url="https://localhost.invalid",
-        model="claude-opus-4-7",
-    )
-    init_langfuse(settings, span_exporter=exporter, flush_at=1)
-    return exporter
-
-
-@pytest.fixture
-def exporter(in_memory_exporter: InMemorySpanExporter) -> InMemorySpanExporter:
-    from langfuse import get_client
-
-    # Drain any in-flight spans from prior tests, then clear, so each
-    # test starts with a verifiably empty exporter.
-    get_client().flush()
-    in_memory_exporter.clear()
-    yield in_memory_exporter
-    get_client().flush()
-    in_memory_exporter.clear()
-
-
-def _flush_and_get_spans(exporter: InMemorySpanExporter):
+def _flush_and_get_spans(exporter):
     from langfuse import get_client
 
     get_client().flush()
