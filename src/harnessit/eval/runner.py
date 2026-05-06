@@ -125,7 +125,7 @@ def format_eval_summary(result: EvalResult) -> str:
         f"fct_p99_delta_ns: {result.comparison.get('fct_p99_delta_ns')}",
         f"fct_p999_delta_ns: {result.comparison.get('fct_p999_delta_ns')}",
         "",
-        f"--- model output ({result.completion.input_tokens}→{result.completion.output_tokens} tokens) ---",
+        f"--- model output ({result.completion.input_tokens}->{result.completion.output_tokens} tokens) ---",
         result.completion.text,
         "",
         "--- scoring ---",

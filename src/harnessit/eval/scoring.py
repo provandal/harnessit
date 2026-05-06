@@ -59,9 +59,12 @@ _FLOW_COUNT_PATTERNS = [
 
 _INCOMPLETE_FLOW_PATTERNS = [
     re.compile(r"\bincomplete\s+flow", re.IGNORECASE),
+    re.compile(r"\bflows?\b[^.]{0,40}\bincomplete\b", re.IGNORECASE),
+    re.compile(r"\bincomplete\b[^.]{0,40}\bflows?\b", re.IGNORECASE),
     re.compile(r"\bdid\s+not\s+complete", re.IGNORECASE),
-    re.compile(r"\bnever\s+completed", re.IGNORECASE),
+    re.compile(r"\bnever\s+completed?", re.IGNORECASE),
     re.compile(r"\bunfinished\s+flow", re.IGNORECASE),
+    re.compile(r"\bdidn'?t\s+complete", re.IGNORECASE),
 ]
 
 _DISTRIBUTION_PATTERNS = [
