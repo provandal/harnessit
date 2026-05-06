@@ -2,13 +2,14 @@
 
 Usage::
 
-    python -m harnessit                          # run the silent-drops scenario
-    python -m harnessit silent-drops-localization
+    python -m harnessit                                # default scenario
+    python -m harnessit microburst-symptom-only
+    python -m harnessit microburst-with-topology
 
-Stage 2 ships exactly one scenario; the CLI accepts a scenario name
-mostly to make Stage 3's additions a one-line change. Output is
-``format_eval_summary`` text to stdout. Spans + scores are emitted to
-Langfuse Cloud for the trajectory viewer (Stage 4) to render.
+Stage 2 ships two scenarios that share the same underlying microburst
+fault but vary in how much context the user prompt carries. Output is
+``format_eval_summary`` text to stdout. Spans + scores emit to Langfuse
+Cloud for the trajectory viewer (Stage 4) to render.
 """
 
 from __future__ import annotations
@@ -21,14 +22,15 @@ from harnessit.config import load_settings
 from harnessit.eval import EvalResult
 from harnessit.eval.runner import format_eval_summary, run_eval
 from harnessit.model import ModelClient
-from harnessit.scenarios import silent_drops_localization
+from harnessit.scenarios import microburst_symptom_only, microburst_with_topology
 from harnessit.substrate import DoppelgangerClient
 from harnessit.tracing import flush_langfuse, init_langfuse
 
 SCENARIO_FACTORIES = {
-    "silent-drops-localization": silent_drops_localization,
+    "microburst-symptom-only": microburst_symptom_only,
+    "microburst-with-topology": microburst_with_topology,
 }
-DEFAULT_SCENARIO = "silent-drops-localization"
+DEFAULT_SCENARIO = "microburst-symptom-only"
 
 
 async def _run(scenario_name: str) -> EvalResult:

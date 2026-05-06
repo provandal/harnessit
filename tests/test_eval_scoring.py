@@ -1,15 +1,16 @@
-"""Tests for eval scoring rubrics.
+"""Tests for triage-quality scoring rubrics.
 
-Verifies that the silent-drops scorer correctly identifies which §3.8
-commitments the model output references, and that the rubrics are
-gated on whether the comparison data actually contains those signals
-(no point demanding "incomplete-flow acknowledgment" if there are no
-incomplete flows).
+The Stage 2 v2 scoring measures how the model *would* investigate
+given a symptom — multiple hypotheses, named telemetry, acknowledged
+unknowns, coherent ordering. These tests fix the rubric thresholds
+against representative LLM outputs (good triage / vague guess / single
+hypothesis lock-in) so regressions are caught when the rubric drifts.
 """
 
 from __future__ import annotations
 
-from harnessit.eval.scoring import score_silent_drops_localization
+from harnessit.eval.scoring import score_triage_quality
+from harnessit.eval.types import EvalContext
 from harnessit.model import Completion
 
 
@@ -17,134 +18,161 @@ def _completion(text: str) -> Completion:
     return Completion(
         text=text,
         model="claude-opus-4-7",
-        input_tokens=10,
-        output_tokens=20,
+        input_tokens=200,
+        output_tokens=400,
         stop_reason="end_turn",
     )
 
 
-def _comparison(
-    *,
-    flow_count_delta: int = -5,
-    has_count_divergence: bool | None = None,
-    fct_p50: int | None = 12_000,
-    fct_p99: int | None = 50_000,
-    fct_p999: int | None = 100_000,
-    incomplete_baseline: int = 0,
-    incomplete_injected: int = 0,
-) -> dict:
-    if has_count_divergence is None:
-        has_count_divergence = flow_count_delta != 0
-    return {
-        "flow_count_delta": flow_count_delta,
-        "has_count_divergence": has_count_divergence,
-        "fct_p50_delta_ns": fct_p50,
-        "fct_p99_delta_ns": fct_p99,
-        "fct_p999_delta_ns": fct_p999,
-        "baseline_summary": {"incomplete": incomplete_baseline},
-        "injected_summary": {"incomplete": incomplete_injected},
-    }
+def _ctx() -> EvalContext:
+    """A minimal context for scoring — the rubric only reads completion.text."""
+    return EvalContext(
+        target_run={"run_id": "x", "trace_dir": "traces/x"},
+        baseline_run=None,
+        comparison=None,
+        scenario_metadata={},
+    )
 
 
-def test_perfect_answer_passes_all_rubrics():
-    text = (
-        "I see silent drops in the injected run: there are 5 missing flows "
-        "compared to the baseline (flow-count delta of -5). Several flows "
-        "are incomplete — they did not complete. The p99 tail latency also "
-        "shifts, suggesting distribution-level impact."
-    )
-    score = score_silent_drops_localization(
-        _comparison(incomplete_injected=3),
-        _completion(text),
-    )
+# ---------- Good triage answers ----------
+
+def test_good_triage_passes_all_rubrics():
+    """Representative competent triage response: multiple hypotheses,
+    named telemetry, hedging, coherent order."""
+    text = """
+    Without more information, this could be one of several things. I'd want
+    to investigate in this order:
+
+    1. **Check if this is an incast/microburst pattern** — query per-flow
+       completion stats for flows targeting 11.0.0.1 to see if many
+       senders are hitting the host simultaneously. Look at the FCT
+       distribution and tail percentiles (p50/p99/p999).
+
+    2. **Look at queue depth on the leaf switch** that hosts 11.0.0.1.
+       If queue occupancy spikes during the burst windows, that's
+       buffer pressure. Check PFC pause counters too — if PAUSE frames
+       are firing, that's evidence of fabric-wide propagation.
+
+    3. **Per-link counters on leaf<->spine links** — drop counters,
+       throughput, ECN marks. Asymmetry would suggest hash polarization
+       or a degraded link.
+
+    4. **Check for synchronized application behavior** — is there an
+       all-reduce or all-gather collective starting at 09:14? That
+       could be an application-side cause masquerading as a network
+       problem.
+
+    I'd need access to the network telemetry and topology before I
+    could narrow this further.
+    """
+    score = score_triage_quality(_ctx(), _completion(text))
     assert score.overall_pass is True
     assert score.criteria == {
-        "identifies_failure_class": True,
-        "cites_flow_count_delta": True,
-        "acknowledges_incomplete_flows": True,
-        "cites_distribution_signal": True,
+        "considers_multiple_hypotheses": True,
+        "names_telemetry_to_query": True,
+        "acknowledges_unknowns": True,
+        "coherent_investigation_order": True,
     }
 
 
-def test_naked_model_failure_mode_fails_all_rubrics():
-    """A vague hand-wavy answer that names no signal: fails everything."""
+def test_vague_answer_fails_everything():
+    """A hedge-filled non-answer. Acknowledges unknown but doesn't
+    propose hypotheses or telemetry."""
     text = (
-        "Based on the data, something looks off. The injected run shows "
-        "different behavior than the baseline. I would investigate further "
-        "by collecting more telemetry."
+        "I'm not sure what's going on. There could be several reasons. "
+        "More information would help."
     )
-    score = score_silent_drops_localization(
-        _comparison(incomplete_injected=2),
-        _completion(text),
-    )
+    score = score_triage_quality(_ctx(), _completion(text))
     assert score.overall_pass is False
-    assert score.criteria["identifies_failure_class"] is False
-    assert score.criteria["cites_flow_count_delta"] is False
-    assert score.criteria["acknowledges_incomplete_flows"] is False
-    assert score.criteria["cites_distribution_signal"] is False
+    assert score.criteria["considers_multiple_hypotheses"] is False
+    assert score.criteria["names_telemetry_to_query"] is False
+    assert score.criteria["acknowledges_unknowns"] is True
 
 
-def test_partial_credit_failure_class_only():
-    text = "This looks like packet loss but I can't tell why."
-    score = score_silent_drops_localization(
-        _comparison(),
-        _completion(text),
-    )
-    assert score.overall_pass is False
-    assert score.criteria["identifies_failure_class"] is True
-    assert score.criteria["cites_flow_count_delta"] is False
-
-
-def test_rubric_skipped_when_signal_absent():
-    """If the comparison shows no incomplete flows, that rubric isn't required."""
+def test_single_hypothesis_lock_in_fails_multi_hypothesis_rubric():
+    """Confidently picks one cause, names some telemetry."""
     text = (
-        "Silent drops are dropping packets and produce fewer flows in the "
-        "injected run. The p99 tail shifts."
+        "This is a microburst. Step 1: check FCT distribution. Step 2: "
+        "check queue depth. Step 3: check per-link counters."
     )
-    score = score_silent_drops_localization(
-        _comparison(incomplete_baseline=0, incomplete_injected=0),
-        _completion(text),
+    score = score_triage_quality(_ctx(), _completion(text))
+    assert score.criteria["considers_multiple_hypotheses"] is False
+    assert score.criteria["names_telemetry_to_query"] is True
+    assert score.criteria["coherent_investigation_order"] is True
+    assert score.overall_pass is False
+
+
+def test_hypotheses_without_telemetry_fails_telemetry_rubric():
+    """Considers many causes but doesn't name what to query."""
+    text = (
+        "This could be: (1) an incast pattern, (2) PFC propagation, "
+        "(3) ECMP hash polarization, (4) a NIC issue on the host, "
+        "(5) cable/link degradation. I'd want more information."
     )
-    assert "acknowledges_incomplete_flows" not in score.criteria
-    assert score.overall_pass is True
+    score = score_triage_quality(_ctx(), _completion(text))
+    assert score.criteria["considers_multiple_hypotheses"] is True
+    assert score.criteria["names_telemetry_to_query"] is False
 
 
-def test_distribution_rubric_skipped_when_no_percentile_signal():
-    text = "Silent drops, fewer flows."
-    score = score_silent_drops_localization(
-        _comparison(fct_p50=0, fct_p99=0, fct_p999=0, incomplete_injected=0),
-        _completion(text),
+def test_telemetry_without_hedging_fails_acknowledgment_rubric():
+    """Names telemetry but pretends it has the data."""
+    text = (
+        "This is incast. Looking at the FCT distribution, p99 is up. "
+        "Queue depth is high. Per-link counters show drops. PFC is "
+        "firing. ECN marks are elevated. ECMP polarization isn't an "
+        "issue. The host NIC is fine."
     )
-    assert "cites_distribution_signal" not in score.criteria
-    assert score.criteria["identifies_failure_class"] is True
-    assert score.criteria["cites_flow_count_delta"] is True
-    assert score.overall_pass is True
+    score = score_triage_quality(_ctx(), _completion(text))
+    assert score.criteria["considers_multiple_hypotheses"] is True
+    assert score.criteria["names_telemetry_to_query"] is True
+    assert score.criteria["acknowledges_unknowns"] is False
 
 
-def test_count_rubric_skipped_when_no_divergence():
-    """If baseline and injected have the same flow count, no count-rubric."""
-    text = "Latency-only regression at the p99 tail."
-    score = score_silent_drops_localization(
-        _comparison(flow_count_delta=0, has_count_divergence=False, incomplete_injected=0),
-        _completion(text),
+def test_unordered_bag_of_points_fails_ordering_rubric():
+    """Mentions hypotheses + telemetry + hedging but not as a sequence."""
+    text = (
+        "Possible causes include incast and ECMP polarization and PFC "
+        "propagation issues. Telemetry I would need: FCT distribution, "
+        "queue depth, per-link counters. I would want more info."
     )
-    assert "cites_flow_count_delta" not in score.criteria
+    score = score_triage_quality(_ctx(), _completion(text))
+    assert score.criteria["coherent_investigation_order"] is False
 
 
-def test_rationale_includes_ground_truth_signals():
-    score = score_silent_drops_localization(
-        _comparison(flow_count_delta=-7, incomplete_injected=4),
-        _completion("nothing useful"),
+def test_numbered_steps_satisfy_ordering():
+    text = (
+        "1. Check FCT and per-link counters. 2. Look at queue depth. "
+        "3. Check ECMP hash. Possible causes: incast, PFC propagation, "
+        "and NIC issues. I'd want more info before concluding."
     )
-    assert "flow_count_delta=-7" in score.rationale
-    assert "has_count_divergence=True" in score.rationale
-    assert "incomplete_injected=4" in score.rationale
+    score = score_triage_quality(_ctx(), _completion(text))
+    assert score.criteria["coherent_investigation_order"] is True
 
 
-def test_silent_drop_phrase_with_hyphen_or_space():
-    for phrase in ["silent drops", "silent-drops", "Silent Drop"]:
-        score = score_silent_drops_localization(
-            _comparison(incomplete_injected=0),
-            _completion(f"{phrase} fewer flows p99"),
-        )
-        assert score.criteria["identifies_failure_class"] is True, phrase
+def test_ordinal_words_satisfy_ordering():
+    text = (
+        "First, query FCT distribution and per-link counters. Then "
+        "check queue depth. Finally look at ECMP hash distribution. "
+        "Possible: incast, PFC propagation, NIC issue. I'd need more info."
+    )
+    score = score_triage_quality(_ctx(), _completion(text))
+    assert score.criteria["coherent_investigation_order"] is True
+
+
+def test_thresholds_can_be_tuned():
+    """min_hypotheses=2 should pass on a 2-hypothesis answer."""
+    text = (
+        "Could be incast or ECMP polarization. 1. Check FCT. 2. Look at "
+        "queue depth. 3. Per-link counters. 4. Topology query. I'd need more info."
+    )
+    strict = score_triage_quality(_ctx(), _completion(text))
+    lenient = score_triage_quality(_ctx(), _completion(text), min_hypotheses=2)
+    assert strict.criteria["considers_multiple_hypotheses"] is False
+    assert lenient.criteria["considers_multiple_hypotheses"] is True
+
+
+def test_rationale_includes_hits():
+    text = "Incast or ECMP. 1. FCT. 2. Queue depth. I'd need more info."
+    score = score_triage_quality(_ctx(), _completion(text))
+    assert "hypotheses_hit=" in score.rationale
+    assert "telemetry_hit=" in score.rationale

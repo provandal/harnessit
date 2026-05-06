@@ -1,14 +1,14 @@
-"""Tests for the eval runner — fakes for substrate + model."""
+"""Tests for the eval runner — single-run + paired shapes via fakes."""
 
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 import pytest
 
-from harnessit.eval import EvalScenario, run_eval
+from harnessit.eval import EvalContext, EvalScenario, run_eval
 from harnessit.eval.runner import EVAL_SPAN_NAME, format_eval_summary
 from harnessit.eval.scoring import Score
 from harnessit.model import Completion, ModelClient
@@ -39,7 +39,7 @@ class _FakeMessage:
 
 
 class _RecordingMessagesAPI:
-    def __init__(self, text: str = "model said this") -> None:
+    def __init__(self, text: str = "model response") -> None:
         self.text = text
         self.calls: list[dict[str, Any]] = []
 
@@ -74,7 +74,7 @@ class _FakeToolResult:
 class _FakeSubstrateSession:
     """Mimics enough of mcp.ClientSession for run_eval. Records calls."""
 
-    def __init__(self, comparison: dict[str, Any]) -> None:
+    def __init__(self, comparison: dict[str, Any] | None = None) -> None:
         self.comparison = comparison
         self.calls: list[tuple[str, dict[str, Any]]] = []
 
@@ -89,7 +89,7 @@ class _FakeSubstrateSession:
                     "trace_dir": f"traces/{run_id}",
                     "compiled_config_path": None,
                     "wall_clock_seconds": 1.5,
-                    "summary": {},
+                    "summary": {"total": 15, "completed": 15, "incomplete": 0},
                     "flows": [],
                 },
                 "source": "driver.run_scenario",
@@ -113,136 +113,209 @@ class _FakeSubstrateSession:
         raise NotImplementedError
 
 
-# ---------- shared comparison + scenario builders ----------
-
-def _comparison_with_silent_drops() -> dict[str, Any]:
-    return {
-        "baseline_trace_dir": "traces/base",
-        "injected_trace_dir": "traces/inj",
-        "flow_count_delta": -5,
-        "has_count_divergence": True,
-        "fct_p50_delta_ns": 12_000,
-        "fct_p99_delta_ns": 80_000,
-        "fct_p999_delta_ns": 120_000,
-        "baseline_summary": {"total": 255, "completed": 255, "incomplete": 0},
-        "injected_summary": {"total": 250, "completed": 248, "incomplete": 2},
-        "findings": ["flow count divergence detected"],
-    }
-
-
-def _build_user_prompt(comparison: dict[str, Any]) -> str:
-    return (
-        f"flow_count_delta: {comparison['flow_count_delta']}\n"
-        f"fct_p99_delta_ns: {comparison['fct_p99_delta_ns']}\n"
-        f"findings: {comparison['findings']}\n"
-    )
-
-
-def _strict_score(comparison: dict[str, Any], completion: Completion) -> Score:
-    return Score(
-        overall_pass="silent drop" in completion.text.lower(),
-        criteria={"identifies_failure_class": "silent drop" in completion.text.lower()},
-        rationale="strict scorer for tests",
-    )
-
-
-def _make_scenario() -> EvalScenario:
-    return EvalScenario(
-        name="silent-drops-localization",
-        description="naked model attempts to localize silent drops",
-        system_prompt="You are an investigation agent.",
-        baseline_scenario="spike-burst-baseline",
-        injected_scenario="spike-burst-silent-drops",
-        build_user_prompt=_build_user_prompt,
-        score=_strict_score,
-        expected_to_pass=False,
-    )
-
-
 def _make_model_client(text: str) -> tuple[ModelClient, _RecordingMessagesAPI]:
     api = _RecordingMessagesAPI(text=text)
     client = ModelClient(client=_FakeAnthropic(messages=api), model="claude-opus-4-7")
     return client, api
 
 
-# ---------- tests (use shared `exporter` fixture from conftest) ----------
-
-async def test_run_eval_orchestrates_substrate_calls_and_completion(exporter):
-    session = _FakeSubstrateSession(_comparison_with_silent_drops())
-    substrate = DoppelgangerClient(session=session)
-    model_client, api = _make_model_client("I see silent drops here.")
-
-    result = await run_eval(
-        scenario=_make_scenario(),
-        substrate=substrate,
-        model_client=model_client,
-        run_id_prefix="test-prefix",
+def _stub_score(_context: EvalContext, completion: Completion) -> Score:
+    """Test-only deterministic score: pass iff 'pass' literal in output."""
+    p = "pass" in completion.text.lower()
+    return Score(
+        overall_pass=p,
+        criteria={"stub_passed": p},
+        rationale=f"stub: {'PASS' if p else 'FAIL'}",
     )
 
-    # Substrate call sequence: baseline, injected, compare
+
+def _make_single_run_scenario(prompt_builder=None) -> EvalScenario:
+    return EvalScenario(
+        name="test-single-run",
+        description="single-run test scenario",
+        system_prompt="You are a test assistant.",
+        target_scenario="microburst",
+        baseline_scenario=None,
+        build_user_prompt=prompt_builder or (lambda ctx: "user prompt"),
+        score=_stub_score,
+        expected_to_pass=False,
+    )
+
+
+def _make_paired_scenario() -> EvalScenario:
+    return EvalScenario(
+        name="test-paired",
+        description="paired test scenario",
+        system_prompt="You are a test assistant.",
+        target_scenario="spike-burst-silent-drops",
+        baseline_scenario="spike-burst-baseline",
+        build_user_prompt=lambda ctx: f"delta={ctx.comparison['flow_count_delta']}",
+        score=_stub_score,
+        expected_to_pass=False,
+    )
+
+
+# ---------- single-run shape ----------
+
+async def test_run_eval_single_run_skips_baseline_and_compare(exporter):
+    session = _FakeSubstrateSession(comparison=None)
+    substrate = DoppelgangerClient(session=session)
+    model_client, _ = _make_model_client("triage plan: pass")
+
+    result = await run_eval(
+        scenario=_make_single_run_scenario(),
+        substrate=substrate,
+        model_client=model_client,
+        run_id_prefix="single",
+    )
+
+    # Only one substrate call: the target run. No baseline, no compare.
+    assert [c[0] for c in session.calls] == ["run_scenario"]
+    assert session.calls[0][1]["name"] == "microburst"
+    assert session.calls[0][1]["run_id"] == "single__target"
+
+    assert result.target_run_id == "single__target"
+    assert result.target_trace_dir == "traces/single__target"
+    assert result.baseline_run_id is None
+    assert result.baseline_trace_dir is None
+    assert result.comparison is None
+    assert result.score.overall_pass is True
+
+
+async def test_run_eval_single_run_passes_context_to_prompt_builder(exporter):
+    captured: dict[str, Any] = {}
+
+    def builder(ctx: EvalContext) -> str:
+        captured["ctx"] = ctx
+        return f"target_run_id={ctx.target_run['run_id']}"
+
+    session = _FakeSubstrateSession(comparison=None)
+    substrate = DoppelgangerClient(session=session)
+    model_client, api = _make_model_client("response: pass")
+
+    await run_eval(
+        scenario=_make_single_run_scenario(prompt_builder=builder),
+        substrate=substrate,
+        model_client=model_client,
+        run_id_prefix="ctx-test",
+    )
+
+    ctx = captured["ctx"]
+    assert ctx.target_run["run_id"] == "ctx-test__target"
+    assert ctx.baseline_run is None
+    assert ctx.comparison is None
+    assert "target_run_id=ctx-test__target" in api.calls[0]["messages"][0]["content"]
+
+
+async def test_run_eval_propagates_scenario_metadata(exporter):
+    captured: dict[str, Any] = {}
+
+    def builder(ctx: EvalContext) -> str:
+        captured["ctx"] = ctx
+        return "user prompt"
+
+    session = _FakeSubstrateSession(comparison=None)
+    substrate = DoppelgangerClient(session=session)
+    model_client, _ = _make_model_client("response: pass")
+
+    await run_eval(
+        scenario=_make_single_run_scenario(prompt_builder=builder),
+        substrate=substrate,
+        model_client=model_client,
+        run_id_prefix="meta",
+        scenario_metadata={"intended_symptom": "X", "root_cause": "Y"},
+    )
+    assert captured["ctx"].scenario_metadata == {
+        "intended_symptom": "X",
+        "root_cause": "Y",
+    }
+
+
+# ---------- paired shape ----------
+
+async def test_run_eval_paired_runs_baseline_target_compare(exporter):
+    comparison = {
+        "flow_count_delta": -5,
+        "has_count_divergence": True,
+        "fct_p50_delta_ns": 1000,
+        "fct_p99_delta_ns": 50000,
+        "fct_p999_delta_ns": 90000,
+        "baseline_summary": {"total": 255, "completed": 255, "incomplete": 0},
+        "injected_summary": {"total": 250, "completed": 248, "incomplete": 2},
+        "findings": ["count divergence"],
+    }
+    session = _FakeSubstrateSession(comparison=comparison)
+    substrate = DoppelgangerClient(session=session)
+    model_client, api = _make_model_client("delta detected: pass")
+
+    result = await run_eval(
+        scenario=_make_paired_scenario(),
+        substrate=substrate,
+        model_client=model_client,
+        run_id_prefix="pair",
+    )
+
+    # Baseline + target + compare, in order.
     assert [c[0] for c in session.calls] == [
         "run_scenario",
         "run_scenario",
         "compare_runs",
     ]
-    # run_id pass-through
-    assert session.calls[0][1]["run_id"] == "test-prefix__baseline"
-    assert session.calls[1][1]["run_id"] == "test-prefix__injected"
-    # compare_runs gets the trace_dirs from prior run results
+    assert session.calls[0][1]["run_id"] == "pair__baseline"
+    assert session.calls[1][1]["run_id"] == "pair__target"
     compare_args = session.calls[2][1]
-    assert compare_args["baseline_trace_dir"] == "traces/test-prefix__baseline"
-    assert compare_args["injected_trace_dir"] == "traces/test-prefix__injected"
+    assert compare_args["baseline_trace_dir"] == "traces/pair__baseline"
+    assert compare_args["injected_trace_dir"] == "traces/pair__target"
 
-    # Model call gets the formatted prompt from the scenario
-    assert "flow_count_delta: -5" in api.calls[0]["messages"][0]["content"]
+    assert result.baseline_run_id == "pair__baseline"
+    assert result.target_run_id == "pair__target"
+    assert result.comparison == comparison
+    # The prompt builder pulled from the comparison
+    assert "delta=-5" in api.calls[0]["messages"][0]["content"]
 
 
-async def test_run_eval_returns_full_result(exporter):
-    session = _FakeSubstrateSession(_comparison_with_silent_drops())
+async def test_run_eval_paired_metadata_includes_comparison_signals(exporter):
+    session = _FakeSubstrateSession(comparison={
+        "flow_count_delta": -3,
+        "has_count_divergence": True,
+        "baseline_summary": {}, "injected_summary": {},
+    })
     substrate = DoppelgangerClient(session=session)
-    model_client, _ = _make_model_client("I see silent drops here.")
-
-    result = await run_eval(
-        scenario=_make_scenario(),
-        substrate=substrate,
-        model_client=model_client,
-        run_id_prefix="case-a",
-    )
-    assert result.scenario_name == "silent-drops-localization"
-    assert result.baseline_run_id == "case-a__baseline"
-    assert result.injected_run_id == "case-a__injected"
-    assert result.baseline_trace_dir == "traces/case-a__baseline"
-    assert result.injected_trace_dir == "traces/case-a__injected"
-    assert result.comparison["flow_count_delta"] == -5
-    assert result.score.overall_pass is True
-    assert result.langfuse_trace_id  # populated from the live client
-
-
-async def test_run_eval_naked_model_visible_failure(exporter):
-    """Naked model gives a vague answer; eval correctly marks it failed."""
-    session = _FakeSubstrateSession(_comparison_with_silent_drops())
-    substrate = DoppelgangerClient(session=session)
-    model_client, _ = _make_model_client("I'm not sure, more telemetry needed.")
-
-    result = await run_eval(
-        scenario=_make_scenario(),
-        substrate=substrate,
-        model_client=model_client,
-    )
-    assert result.score.overall_pass is False
-
-
-async def test_run_eval_emits_eval_and_generation_spans(exporter):
-    session = _FakeSubstrateSession(_comparison_with_silent_drops())
-    substrate = DoppelgangerClient(session=session)
-    model_client, _ = _make_model_client("silent drop detected")
+    model_client, _ = _make_model_client("delta=-3: pass")
 
     await run_eval(
-        scenario=_make_scenario(),
+        scenario=_make_paired_scenario(),
+        substrate=substrate,
+        model_client=model_client,
+        run_id_prefix="metadata",
+    )
+
+    from langfuse import get_client
+
+    get_client().flush()
+    eval_span = next(
+        s for s in exporter.get_finished_spans() if s.name == EVAL_SPAN_NAME
+    )
+    attrs = eval_span.attributes or {}
+    assert attrs["langfuse.observation.metadata.flow_count_delta"] == -3
+    assert attrs["langfuse.observation.metadata.has_count_divergence"] is True
+    assert attrs["langfuse.observation.metadata.baseline_run_id"] == "metadata__baseline"
+
+
+# ---------- shared behavior ----------
+
+async def test_run_eval_emits_eval_and_generation_spans(exporter):
+    session = _FakeSubstrateSession(comparison=None)
+    substrate = DoppelgangerClient(session=session)
+    model_client, _ = _make_model_client("response: pass")
+
+    await run_eval(
+        scenario=_make_single_run_scenario(),
         substrate=substrate,
         model_client=model_client,
         run_id_prefix="span-check",
     )
+
     from langfuse import get_client
 
     get_client().flush()
@@ -251,79 +324,90 @@ async def test_run_eval_emits_eval_and_generation_spans(exporter):
     assert GENERATION_SPAN_NAME in span_names
 
 
-async def test_run_eval_eval_span_records_score_metadata(exporter):
-    session = _FakeSubstrateSession(_comparison_with_silent_drops())
+async def test_run_eval_visible_failure(exporter):
+    """Score returns FAIL when the model output doesn't contain 'pass'."""
+    session = _FakeSubstrateSession(comparison=None)
     substrate = DoppelgangerClient(session=session)
-    model_client, _ = _make_model_client("silent drop detected")
+    model_client, _ = _make_model_client("vague unhelpful answer")
 
-    await run_eval(
-        scenario=_make_scenario(),
+    result = await run_eval(
+        scenario=_make_single_run_scenario(),
         substrate=substrate,
         model_client=model_client,
-        run_id_prefix="metadata-check",
     )
-    from langfuse import get_client
-
-    get_client().flush()
-    eval_span = next(
-        s for s in exporter.get_finished_spans() if s.name == EVAL_SPAN_NAME
-    )
-    attrs = eval_span.attributes or {}
-    output = json.loads(attrs["langfuse.observation.output"])
-    assert output["overall_pass"] is True
-    assert output["criteria"] == {"identifies_failure_class": True}
-    assert attrs["langfuse.observation.metadata.flow_count_delta"] == -5
-    assert attrs["langfuse.observation.metadata.has_count_divergence"] is True
-    assert (
-        attrs["langfuse.observation.metadata.baseline_run_id"]
-        == "metadata-check__baseline"
-    )
+    assert result.score.overall_pass is False
 
 
 async def test_run_eval_default_run_id_prefix_uses_scenario_name(exporter):
-    session = _FakeSubstrateSession(_comparison_with_silent_drops())
+    session = _FakeSubstrateSession(comparison=None)
     substrate = DoppelgangerClient(session=session)
-    model_client, _ = _make_model_client("silent drop")
+    model_client, _ = _make_model_client("response: pass")
 
     result = await run_eval(
-        scenario=_make_scenario(),
+        scenario=_make_single_run_scenario(),
         substrate=substrate,
         model_client=model_client,
     )
-    assert result.baseline_run_id.startswith("silent-drops-localization-")
-    assert result.baseline_run_id.endswith("__baseline")
+    assert result.target_run_id.startswith("test-single-run-")
+    assert result.target_run_id.endswith("__target")
 
 
-def test_format_eval_summary_includes_key_fields():
+# ---------- format_eval_summary ----------
+
+def test_format_eval_summary_single_run_omits_baseline_and_comparison():
     from harnessit.eval.types import EvalResult
 
     result = EvalResult(
-        scenario_name="silent-drops-localization",
-        baseline_run_id="abc__baseline",
-        baseline_trace_dir="traces/abc__baseline",
-        injected_run_id="abc__injected",
-        injected_trace_dir="traces/abc__injected",
-        comparison=_comparison_with_silent_drops(),
+        scenario_name="microburst-symptom-only",
+        target_run_id="abc__target",
+        target_trace_dir="traces/abc__target",
         completion=Completion(
-            text="silent drop, fewer flows, p99",
+            text="triage response",
             model="claude-opus-4-7",
             input_tokens=10,
             output_tokens=5,
             stop_reason="end_turn",
         ),
         score=Score(
-            overall_pass=False,
-            criteria={"identifies_failure_class": True, "cites_flow_count_delta": False},
+            overall_pass=True,
+            criteria={"considers_multiple_hypotheses": True},
             rationale="x",
         ),
         user_prompt="prompt",
         langfuse_trace_id="trace-xyz",
     )
     text = format_eval_summary(result)
-    assert "silent-drops-localization" in text
-    assert "flow_count_delta: -5" in text
-    assert "abc__baseline" in text
+    assert "microburst-symptom-only" in text
+    assert "abc__target" in text
+    assert "baseline" not in text  # single-run mode
+    assert "flow_count_delta" not in text
     assert "trace-xyz" in text
-    assert "PASS" in text  # at least one criterion passed
-    assert "FAIL" in text  # at least one criterion failed
-    assert "overall_pass: False" in text
+    assert "PASS" in text
+
+
+def test_format_eval_summary_paired_includes_comparison():
+    from harnessit.eval.types import EvalResult
+
+    result = EvalResult(
+        scenario_name="paired-test",
+        target_run_id="xyz__target",
+        target_trace_dir="traces/xyz__target",
+        baseline_run_id="xyz__baseline",
+        baseline_trace_dir="traces/xyz__baseline",
+        comparison={
+            "flow_count_delta": -5,
+            "has_count_divergence": True,
+            "fct_p50_delta_ns": 1000,
+            "fct_p99_delta_ns": 50000,
+            "fct_p999_delta_ns": 90000,
+        },
+        completion=Completion(
+            text="x", model="m", input_tokens=1, output_tokens=1, stop_reason=None,
+        ),
+        score=Score(overall_pass=False, criteria={"x": False}, rationale=""),
+        user_prompt="p",
+    )
+    text = format_eval_summary(result)
+    assert "flow_count_delta: -5" in text
+    assert "xyz__baseline" in text
+    assert "FAIL" in text

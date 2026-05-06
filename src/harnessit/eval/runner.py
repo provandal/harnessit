@@ -1,10 +1,19 @@
 """Eval runner — orchestrates one scenario end-to-end.
 
-The runner is the integration point for Stage 2's deliverable 3
-(naked frontier model fails the first eval visibly). It owns the
-substrate-call → comparison → naked-model → score sequence; the
-scenario provides the prompt/scoring policy; Langfuse instrumentation
-emits the full waterfall (eval span → generation span → score event).
+Stage 2 deliverable 3: a naked frontier model fails the first eval
+visibly. The runner owns the substrate-call → optional-comparison →
+naked-model → score sequence; the scenario provides the prompt/scoring
+policy; Langfuse instrumentation emits the full waterfall (eval span
+→ generation span → score event).
+
+Two scenario shapes:
+
+* **Paired** — ``scenario.baseline_scenario`` is set; the runner runs
+  baseline + target + ``compare_runs`` and hands the comparison to the
+  prompt builder/scorer via ``EvalContext``.
+* **Single-run** — ``scenario.baseline_scenario is None``; the runner
+  runs only the target and hands ``EvalContext`` with ``baseline_run``
+  and ``comparison`` set to None.
 """
 
 from __future__ import annotations
@@ -14,8 +23,7 @@ from typing import Any
 
 from langfuse import get_client, observe
 
-from harnessit.eval.scoring import Score
-from harnessit.eval.types import EvalResult, EvalScenario
+from harnessit.eval.types import EvalContext, EvalResult, EvalScenario
 from harnessit.model import ModelClient
 from harnessit.substrate import DoppelgangerClient
 from harnessit.tracing import traced_complete
@@ -31,31 +39,47 @@ async def run_eval(
     substrate: DoppelgangerClient,
     model_client: ModelClient,
     run_id_prefix: str | None = None,
+    scenario_metadata: dict[str, Any] | None = None,
 ) -> EvalResult:
     """Run one scenario end-to-end. Returns the structured result.
 
-    The substrate's ``run_scenario`` calls happen inside the adapter
-    subprocess, so they aren't visible to Langfuse from this side; the
-    naked-model call is wrapped by ``traced_complete``. The eval-level
-    span here gives the trajectory viewer (Stage 4) a parent to anchor
-    children under.
+    ``scenario_metadata`` is propagated into the EvalContext so scorers
+    can access scenario-author intent (intended_symptom, root_cause).
+    Defaults to an empty dict; the per-scenario module supplies it.
     """
     prefix = run_id_prefix or _default_run_id_prefix(scenario.name)
+    is_paired = scenario.baseline_scenario is not None
 
-    baseline_run_id = f"{prefix}__baseline"
-    injected_run_id = f"{prefix}__injected"
+    baseline_run: dict[str, Any] | None = None
+    comparison: dict[str, Any] | None = None
+    baseline_run_id: str | None = None
+    baseline_trace_dir: str | None = None
 
-    baseline = await substrate.run_scenario(
-        scenario.baseline_scenario, run_id=baseline_run_id
-    )
-    injected = await substrate.run_scenario(
-        scenario.injected_scenario, run_id=injected_run_id
-    )
-    comparison = await substrate.compare_runs(
-        baseline["trace_dir"], injected["trace_dir"]
+    if is_paired:
+        baseline_run_id = f"{prefix}__baseline"
+        baseline_run = await substrate.run_scenario(
+            scenario.baseline_scenario, run_id=baseline_run_id
+        )
+        baseline_trace_dir = baseline_run["trace_dir"]
+
+    target_run_id = f"{prefix}__target"
+    target_run = await substrate.run_scenario(
+        scenario.target_scenario, run_id=target_run_id
     )
 
-    user_prompt = scenario.build_user_prompt(comparison)
+    if is_paired:
+        comparison = await substrate.compare_runs(
+            baseline_run["trace_dir"], target_run["trace_dir"]
+        )
+
+    context = EvalContext(
+        target_run=target_run,
+        baseline_run=baseline_run,
+        comparison=comparison,
+        scenario_metadata=dict(scenario_metadata or {}),
+    )
+
+    user_prompt = scenario.build_user_prompt(context)
     completion = traced_complete(
         model_client,
         system=scenario.system_prompt,
@@ -63,27 +87,34 @@ async def run_eval(
         scenario_name=scenario.name,
     )
 
-    score = scenario.score(comparison, completion)
+    score = scenario.score(context, completion)
 
     client = get_client()
+    span_input: dict[str, Any] = {
+        "scenario": scenario.name,
+        "target_scenario": scenario.target_scenario,
+    }
+    if is_paired:
+        span_input["baseline_scenario"] = scenario.baseline_scenario
+
+    metadata: dict[str, Any] = {
+        "expected_to_pass": scenario.expected_to_pass,
+        "target_run_id": target_run["run_id"],
+    }
+    if comparison is not None:
+        metadata["flow_count_delta"] = comparison.get("flow_count_delta")
+        metadata["has_count_divergence"] = comparison.get("has_count_divergence")
+    if baseline_run is not None:
+        metadata["baseline_run_id"] = baseline_run["run_id"]
+
     client.update_current_span(
-        input={
-            "scenario": scenario.name,
-            "baseline_scenario": scenario.baseline_scenario,
-            "injected_scenario": scenario.injected_scenario,
-        },
+        input=span_input,
         output={
             "overall_pass": score.overall_pass,
             "criteria": dict(score.criteria),
             "rationale": score.rationale,
         },
-        metadata={
-            "expected_to_pass": scenario.expected_to_pass,
-            "flow_count_delta": comparison.get("flow_count_delta"),
-            "has_count_divergence": comparison.get("has_count_divergence"),
-            "baseline_run_id": baseline["run_id"],
-            "injected_run_id": injected["run_id"],
-        },
+        metadata=metadata,
     )
     client.score_current_trace(
         name=SCORE_NAME,
@@ -95,10 +126,10 @@ async def run_eval(
 
     return EvalResult(
         scenario_name=scenario.name,
-        baseline_run_id=baseline["run_id"],
-        baseline_trace_dir=baseline["trace_dir"],
-        injected_run_id=injected["run_id"],
-        injected_trace_dir=injected["trace_dir"],
+        target_run_id=target_run["run_id"],
+        target_trace_dir=target_run["trace_dir"],
+        baseline_run_id=baseline_run_id,
+        baseline_trace_dir=baseline_trace_dir,
         comparison=comparison,
         completion=completion,
         score=score,
@@ -117,19 +148,24 @@ def format_eval_summary(result: EvalResult) -> str:
     score = result.score
     lines = [
         f"=== {result.scenario_name} ===",
-        f"baseline: {result.baseline_run_id}",
-        f"injected: {result.injected_run_id}",
-        f"flow_count_delta: {result.comparison.get('flow_count_delta')}",
-        f"has_count_divergence: {result.comparison.get('has_count_divergence')}",
-        f"fct_p50_delta_ns: {result.comparison.get('fct_p50_delta_ns')}",
-        f"fct_p99_delta_ns: {result.comparison.get('fct_p99_delta_ns')}",
-        f"fct_p999_delta_ns: {result.comparison.get('fct_p999_delta_ns')}",
-        "",
-        f"--- model output ({result.completion.input_tokens}->{result.completion.output_tokens} tokens) ---",
-        result.completion.text,
-        "",
-        "--- scoring ---",
+        f"target:   {result.target_run_id}",
     ]
+    if result.baseline_run_id:
+        lines.append(f"baseline: {result.baseline_run_id}")
+    if result.comparison is not None:
+        lines.append(f"flow_count_delta: {result.comparison.get('flow_count_delta')}")
+        lines.append(f"has_count_divergence: {result.comparison.get('has_count_divergence')}")
+        lines.append(f"fct_p50_delta_ns: {result.comparison.get('fct_p50_delta_ns')}")
+        lines.append(f"fct_p99_delta_ns: {result.comparison.get('fct_p99_delta_ns')}")
+        lines.append(f"fct_p999_delta_ns: {result.comparison.get('fct_p999_delta_ns')}")
+    lines.append("")
+    lines.append(
+        f"--- model output ({result.completion.input_tokens}->"
+        f"{result.completion.output_tokens} tokens) ---"
+    )
+    lines.append(result.completion.text)
+    lines.append("")
+    lines.append("--- scoring ---")
     for criterion, passed in score.criteria.items():
         lines.append(f"  {criterion}: {'PASS' if passed else 'FAIL'}")
     lines.append("")
