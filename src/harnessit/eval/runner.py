@@ -157,6 +157,7 @@ async def run_eval(
         span_input["baseline_scenario"] = scenario.baseline_scenario
 
     metadata: dict[str, Any] = {
+        "scenario_name": scenario.name,
         "expected_to_pass": scenario.expected_to_pass,
         "target_run_id": target_run["run_id"],
         "scoring_mode": "llm_judge" if llm_judgment is not None else "keyword",
