@@ -38,15 +38,19 @@ def _ctx() -> EvalContext:
 
 def test_good_triage_passes_all_rubrics():
     """Representative competent triage response: multiple hypotheses,
-    named telemetry, hedging, coherent order."""
+    named telemetry, hedging, coherent order, AND synthesis (concrete
+    fabric entities + quantitative reasoning + ruling-out)."""
     text = """
-    Without more information, this could be one of several things. I'd want
-    to investigate in this order:
+    Host 11.0.0.1 sits on leaf 0 (host id 0). Topology reports asymmetry: false,
+    so cable degradation or a slow spine is unlikely — this is dynamic rather
+    than structural. I'd want to investigate in this order:
 
     1. **Check if this is an incast/microburst pattern** — query per-flow
        completion stats for flows targeting 11.0.0.1 to see if many
        senders are hitting the host simultaneously. Look at the FCT
-       distribution and tail percentiles (p50/p99/p999).
+       distribution and tail percentiles (p50/p99/p999). The 1.5x slowdown
+       is consistent with one or two extra concurrent senders sharing
+       the receiver's 25 Gbps access link.
 
     2. **Look at queue depth on the leaf switch** that hosts 11.0.0.1.
        If queue occupancy spikes during the burst windows, that's
@@ -62,8 +66,8 @@ def test_good_triage_passes_all_rubrics():
        could be an application-side cause masquerading as a network
        problem.
 
-    I'd need access to the network telemetry and topology before I
-    could narrow this further.
+    I'd need access to the network telemetry before I could narrow
+    this further.
     """
     score = score_triage_quality(_ctx(), _completion(text))
     assert score.overall_pass is True
@@ -72,6 +76,7 @@ def test_good_triage_passes_all_rubrics():
         "names_telemetry_to_query": True,
         "acknowledges_unknowns": True,
         "coherent_investigation_order": True,
+        "synthesizes_available_context": True,
     }
 
 
@@ -176,3 +181,115 @@ def test_rationale_includes_hits():
     score = score_triage_quality(_ctx(), _completion(text))
     assert "hypotheses_hit=" in score.rationale
     assert "telemetry_hit=" in score.rationale
+    assert "synthesis_hit=" in score.rationale
+
+
+# ---------- Synthesis criterion (added 2026-05-07) ----------
+
+def test_synthesis_concrete_fabric_entity_signal():
+    """Naming concrete fabric entities (host id, node, leaf, spine, IP)
+    counts as a synthesis signal."""
+    text = (
+        "Host 11.0.0.1 is host id 0 on leaf 0 (node 16). Spine 18 is "
+        "the closest uplink. Could be incast on the access link, ECMP "
+        "polarization, PFC backpressure, or a NIC issue. 1. Check "
+        "queue depth. 2. Per-link counters. 3. FCT distribution. "
+        "4. PFC pause frames. I'd need more info."
+    )
+    score = score_triage_quality(_ctx(), _completion(text))
+    # Three concrete entity references in one pattern hit
+    assert score.criteria["synthesizes_available_context"] is False, (
+        "single-signal hit should fall below the 2-signal threshold"
+    )
+
+
+def test_synthesis_quantitative_anchoring_signal():
+    """Quantitative reasoning that ties symptom to fabric numbers
+    counts as a synthesis signal."""
+    text = (
+        "On host 11.0.0.1: the 1.5x is consistent with one or two extra "
+        "senders on the 25 Gbps link. Could be incast, ECMP polarization, "
+        "PFC backpressure, or NIC issue. 1. Queue depth. 2. Per-link "
+        "counters. 3. FCT. 4. PFC frames. I'd need more info."
+    )
+    score = score_triage_quality(_ctx(), _completion(text))
+    # Two distinct signals: concrete entity (host 11.0.0.1, 25 Gbps as IP
+    # match isn't quite right but quantitative_anchoring's "consistent with"
+    # match should fire alongside concrete_fabric_entity)
+    assert score.criteria["synthesizes_available_context"] is True, (
+        f"expected synthesis PASS with concrete entity + quantitative "
+        f"anchoring; got rationale: {score.rationale}"
+    )
+
+
+def test_synthesis_ruling_out_signal():
+    """Explicit elimination of hypotheses based on data is a
+    synthesis signal."""
+    text = (
+        "On leaf 0, host 11.0.0.1: the topology reports asymmetry: false, "
+        "so cable degradation is unlikely. Rules out structural causes. "
+        "Could be incast, ECMP imbalance, PFC backpressure, or a NIC "
+        "issue. 1. Queue depth. 2. Per-link counters. 3. FCT. "
+        "4. PFC frames. I'd need more info."
+    )
+    score = score_triage_quality(_ctx(), _completion(text))
+    assert score.criteria["synthesizes_available_context"] is True
+
+
+def test_synthesis_meta_pattern_signal():
+    """Identifying meta-patterns (dynamic vs structural) counts as a
+    synthesis signal."""
+    text = (
+        "On leaf 0, host 11.0.0.1: this is dynamic rather than structural. "
+        "Could be incast, ECMP imbalance, PFC backpressure, or a NIC "
+        "issue. 1. Queue depth. 2. Per-link counters. 3. FCT. "
+        "4. PFC frames. I'd need more info."
+    )
+    score = score_triage_quality(_ctx(), _completion(text))
+    # concrete_fabric_entity (leaf 0 + host id-style IP) + meta_pattern
+    assert score.criteria["synthesizes_available_context"] is True
+
+
+def test_enumeration_without_synthesis_fails_synthesis_rubric():
+    """Lists hypotheses + telemetry without integrating context — the
+    Stage 3 with-topology pattern that prompted the criterion in the
+    first place. Generic 'the destination's leaf' / 'a spine' references,
+    no quantitative anchoring, no ruling-out via data."""
+    text = (
+        "The destination's leaf could be saturated. Possible causes: "
+        "incast on the access link, ECMP polarization across spines, "
+        "PFC propagation, NIC issue, cable/optic degradation. "
+        "First, check switch counters. Then look at queue depth. "
+        "Next, check PFC frames. After that, per-link drops, ECN marks "
+        "on the path, and FCT distribution and tail percentiles. "
+        "I'd need more info."
+    )
+    score = score_triage_quality(_ctx(), _completion(text))
+    # Has all 4 original criteria but no synthesis: no concrete IDs, no
+    # quantitative reasoning, no ruling-out, no meta-pattern.
+    assert score.criteria["considers_multiple_hypotheses"] is True
+    assert score.criteria["names_telemetry_to_query"] is True
+    assert score.criteria["acknowledges_unknowns"] is True
+    assert score.criteria["coherent_investigation_order"] is True
+    assert score.criteria["synthesizes_available_context"] is False, (
+        f"compliant-but-not-synthesizing response should fail synthesis; "
+        f"got rationale: {score.rationale}"
+    )
+    # Overall must FAIL because synthesis is required
+    assert score.overall_pass is False
+
+
+def test_synthesis_threshold_can_be_tuned():
+    """Min-synthesis-signals=1 should pass on a single-signal response
+    that the default (2) would fail."""
+    text = (
+        "Host 11.0.0.1 on leaf 0. Could be incast, ECMP polarization, "
+        "PFC backpressure, or NIC issue. 1. Queue depth. 2. Per-link "
+        "counters. 3. FCT. 4. PFC frames. I'd need more info."
+    )
+    strict = score_triage_quality(_ctx(), _completion(text))
+    lenient = score_triage_quality(
+        _ctx(), _completion(text), min_synthesis_signals=1,
+    )
+    assert strict.criteria["synthesizes_available_context"] is False
+    assert lenient.criteria["synthesizes_available_context"] is True

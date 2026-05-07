@@ -146,6 +146,35 @@ RUBRIC_CRITERIA: tuple[tuple[str, str], ...] = (
         "or 'start with X because Y, then Z'. FAIL = flat bullet list with no implied "
         "ordering, or a wall of text where the steps are not separable."
     ),
+    (
+        "synthesizes_available_context",
+        "Does the response INTEGRATE the available fabric context (topology data, "
+        "scenario inputs, structural facts the agent has been given or has retrieved) "
+        "into a sharper analysis, rather than ENUMERATING generic possibilities? This "
+        "is the criterion that distinguishes 'thoughtful synthesis' from 'on-call "
+        "playbook compliance'. Concrete signals (any one is sufficient evidence): "
+        "(a) names specific fabric entities — 'host id 0', 'leaf 0', 'node 16', "
+        "'11.0.1.1', 'spine 18' — rather than generic ones like 'the destination's "
+        "leaf' or 'a spine'; "
+        "(b) uses fabric numbers in quantitative reasoning — '1.5x is consistent "
+        "with one or two extra concurrent senders sharing a 25 Gbps link', or 'with "
+        "4 spines and 100 Gbps each, polarization onto one spine would explain N'; "
+        "(c) explicitly rules out hypotheses based on what the data shows — "
+        "'asymmetry: false, so cable degradation is unlikely', 'topology reports no "
+        "slow spine, so this isn't structural'; "
+        "(d) identifies meta-patterns — 'the cause is dynamic rather than structural', "
+        "'this must be runtime-state, not config'. "
+        "PASS = at least one synthesis move with phrase-level evidence cited in your "
+        "rationale. FAIL = enumeration without integration; lists possibilities "
+        "without using available context to prune them; talks about the fabric "
+        "abstractly when concrete entities are available; treats the symptom "
+        "('1.5x slowdown') as a label rather than a magnitude to reason about. "
+        "Note: a response with no available context to integrate (e.g., bare "
+        "symptom-only with no topology and no tools) can still pass via meta-pattern "
+        "recognition or quantitative reasoning about the symptom itself; but it's "
+        "harder, and that's the point — synthesis is genuinely scarcer when context "
+        "is scarcer."
+    ),
 )
 
 
