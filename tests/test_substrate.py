@@ -176,6 +176,48 @@ async def test_compare_runs_passes_dirs():
     }
 
 
+async def test_get_topology_returns_data_field():
+    session = _FakeSession()
+    client = DoppelgangerClient(session=session)
+    session.stage({
+        "data": {
+            "scenario": "microburst",
+            "shape": "leaf-spine",
+            "leaves": 2,
+            "spines": 4,
+            "hosts_per_leaf": 8,
+        },
+        "source": "adapter.scenario_topology('microburst')",
+        "observed_at_ns": None,
+        "confidence": "high",
+        "staleness_class": "fresh",
+    })
+    data = await client.get_topology("microburst")
+    assert data["leaves"] == 2
+    assert data["spines"] == 4
+    name, args = session.tool_call_log[0]
+    assert name == "get_topology"
+    assert args == {"name": "microburst"}
+
+
+async def test_get_topology_envelope_returns_full_envelope():
+    """Callers that need source/staleness_class metadata use the envelope variant."""
+    session = _FakeSession()
+    client = DoppelgangerClient(session=session)
+    session.stage({
+        "data": {"scenario": "microburst", "shape": "leaf-spine"},
+        "source": "adapter.scenario_topology('microburst')",
+        "observed_at_ns": None,
+        "confidence": "high",
+        "staleness_class": "fresh",
+    })
+    env = await client.get_topology_envelope("microburst")
+    assert env["data"]["shape"] == "leaf-spine"
+    assert env["source"] == "adapter.scenario_topology('microburst')"
+    assert env["confidence"] == "high"
+    assert env["staleness_class"] == "fresh"
+
+
 async def test_call_raises_on_isError():
     session = _FakeSession()
     client = DoppelgangerClient(session=session)
@@ -222,17 +264,32 @@ def test_envelope_metadata_defaults_for_missing_fields():
 # ---------- Live MCP test (gated) ----------
 
 @pytest.mark.requires_substrate
-async def test_live_doppelganger_adapter_exposes_three_tools():
+async def test_live_doppelganger_adapter_exposes_four_tools():
     """Spawn the real ``doppelganger-adapter`` subprocess via MCP stdio.
 
     Verifies the Stage-1 follow-up "real MCP-client round-trip testing"
     that was deferred from Doppelgänger's stage 1 closeout. Doesn't run
     a scenario, so doesn't need the Docker substrate image — only the
-    doppelganger Python package.
+    doppelganger Python package. Stage 3 added get_topology as the
+    fourth tool.
     """
     async with DoppelgangerClient.connect() as client:
         tools = set(await client.list_tools())
-        assert {"list_scenarios", "run_scenario", "compare_runs"} <= tools
+        assert {"list_scenarios", "run_scenario", "get_topology", "compare_runs"} <= tools
+
+
+@pytest.mark.requires_substrate
+async def test_live_doppelganger_adapter_get_topology_microburst():
+    """get_topology against the real Adapter returns the microburst structure."""
+    async with DoppelgangerClient.connect() as client:
+        data = await client.get_topology("microburst")
+        assert data["shape"] == "leaf-spine"
+        assert data["leaves"] == 2
+        assert data["spines"] == 4
+        assert data["total_hosts"] == 16
+        # Ground-truth metadata must NOT be exposed
+        assert "intended_symptom" not in data
+        assert "root_cause" not in data
 
 
 @pytest.mark.requires_substrate

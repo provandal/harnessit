@@ -111,6 +111,33 @@ class DoppelgangerClient:
         envelope = await self._call("list_scenarios", {})
         return envelope["data"]
 
+    async def get_topology(self, name: str) -> dict[str, Any]:
+        """Return the topology declaration of a named scenario.
+
+        Returns the structural payload — ``shape``/``leaves``/``spines``/
+        ``leaf_switches``/``spine_switches``/``host_link``/``spine_link``/
+        ``asymmetry``/``congestion_control`` — for scenarios with a
+        custom topology, or a degraded payload (``shape ==
+        "substrate-bundled"``) for spike-burst* scenarios that pin to a
+        substrate-shipped topology file.
+
+        Eval ground-truth metadata (intended_symptom, root_cause) is
+        deliberately not surfaced; the Adapter filters it out so this
+        tool is safe to expose to the agent under tool use.
+        """
+        envelope = await self._call("get_topology", {"name": name})
+        return envelope["data"]
+
+    async def get_topology_envelope(self, name: str) -> dict[str, Any]:
+        """Same as ``get_topology`` but returns the full envelope.
+
+        Callers that need the response-envelope metadata
+        (``source``/``observed_at_ns``/``confidence``/``staleness_class``)
+        — e.g. to attach to a Langfuse span as tool metadata — use this
+        variant instead of unwrapping ``data``.
+        """
+        return await self._call("get_topology", {"name": name})
+
     async def run_scenario(
         self,
         name: str,
