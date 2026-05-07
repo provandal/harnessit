@@ -21,15 +21,22 @@ Use:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from langfuse import Langfuse, get_client, observe
 
 from harnessit.config import Settings
-from harnessit.model import Completion, ModelClient, ToolExecutor, ToolUseCompletion
+from harnessit.model import Completion, ModelClient, ToolCall, ToolExecutor, ToolUseCompletion
+
+if TYPE_CHECKING:
+    # Avoid a cycle: harnessit.eval.judge imports JUDGE_SPAN_NAME from
+    # this module (re-exports it for callers); we only need the Judge /
+    # Judgment types at type-check time.
+    from harnessit.eval.judge import Judge, Judgment
 
 GENERATION_SPAN_NAME = "harnessit.naked_model.complete"
 TOOL_USE_GENERATION_SPAN_NAME = "harnessit.tool_use.complete"
+JUDGE_SPAN_NAME = "harnessit.eval.judge"
 
 
 def init_langfuse(
@@ -166,3 +173,58 @@ async def traced_complete_with_tools(
         metadata=metadata,
     )
     return completion
+
+
+@observe(
+    as_type="span",
+    name=JUDGE_SPAN_NAME,
+    capture_input=False,
+    capture_output=False,
+)
+async def traced_judge_score(
+    judge: Judge,
+    *,
+    system_prompt: str,
+    user_prompt: str,
+    agent_response: str,
+    tool_calls: tuple[ToolCall, ...] = (),
+    scenario_name: str | None = None,
+) -> Judgment:
+    """LLM-judge call wrapped in a Langfuse span.
+
+    The span captures the judge's structured output — per-criterion
+    rationale, overall verdict, judge model — so the trajectory viewer
+    (Stage 4) can render the judge's reasoning alongside the agent's.
+    Failures bubble up as ``JudgeError`` for the runner to catch and
+    fall back to keyword scoring.
+    """
+    judgment = await judge.score(
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        agent_response=agent_response,
+        tool_calls=tool_calls,
+    )
+
+    metadata: dict[str, Any] = {
+        "judge_model": judgment.judge_model,
+    }
+    if scenario_name is not None:
+        metadata["scenario_name"] = scenario_name
+
+    get_client().update_current_span(
+        input={
+            "judge_model": judge.model,
+            "agent_response_length": len(agent_response),
+            "tool_calls_count": len(tool_calls),
+        },
+        output={
+            "overall_pass": judgment.overall_pass,
+            "overall_rationale": judgment.overall_rationale,
+            "criteria": [
+                {"name": c.name, "passed": c.passed, "rationale": c.rationale}
+                for c in judgment.criteria
+            ],
+        },
+        metadata=metadata,
+    )
+    return judgment
