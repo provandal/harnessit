@@ -106,9 +106,12 @@ class _FakeSubstrateSession:
                 "staleness_class": "stale",
             }
         elif name == "get_topology":
+            # Note: scenario name is NOT in the data payload — that was
+            # the Stage 3 first-pass leak (model read "scenario:
+            # microburst" as the answer key). It belongs in `source`
+            # only, as operator-side trace metadata.
             envelope = {
                 "data": {
-                    "scenario": arguments["name"],
                     "shape": "leaf-spine",
                     "leaves": 2,
                     "spines": 4,
