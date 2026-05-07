@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from harnessit.eval.scoring import Score
-from harnessit.model import Completion
+from harnessit.model import Completion, ToolCall
 
 
 @dataclass(frozen=True)
@@ -66,6 +66,11 @@ class EvalScenario:
     score: Callable[[EvalContext, Completion], Score]
     baseline_scenario: str | None = None
     expected_to_pass: bool = False
+    # Stage 3: when True, the runner gives the model the harness tool
+    # surface (harnessit.tools.Tools bound to ``target_scenario``) and
+    # uses ``ModelClient.complete_with_tools``. When False (Stage 2
+    # default), the runner uses the naked single-shot path.
+    uses_tools: bool = False
 
 
 @dataclass(frozen=True)
@@ -86,3 +91,7 @@ class EvalResult:
     baseline_trace_dir: str | None = None
     comparison: dict[str, Any] | None = None
     langfuse_trace_id: str | None = None
+    # Stage 3: present when the scenario used tools. Empty tuple for
+    # naked scenarios; preserves agent's tool round-trips for analysis.
+    tool_calls: tuple[ToolCall, ...] = ()
+    iterations: int = 1

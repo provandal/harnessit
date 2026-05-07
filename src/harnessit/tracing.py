@@ -26,9 +26,10 @@ from typing import Any
 from langfuse import Langfuse, get_client, observe
 
 from harnessit.config import Settings
-from harnessit.model import Completion, ModelClient
+from harnessit.model import Completion, ModelClient, ToolExecutor, ToolUseCompletion
 
 GENERATION_SPAN_NAME = "harnessit.naked_model.complete"
+TOOL_USE_GENERATION_SPAN_NAME = "harnessit.tool_use.complete"
 
 
 def init_langfuse(
@@ -97,6 +98,66 @@ def traced_complete(
     get_client().update_current_generation(
         model=completion.model,
         input={"system": system, "user": user},
+        output=completion.text,
+        usage_details={
+            "input": completion.input_tokens,
+            "output": completion.output_tokens,
+        },
+        metadata=metadata,
+    )
+    return completion
+
+
+@observe(
+    as_type="generation",
+    name=TOOL_USE_GENERATION_SPAN_NAME,
+    capture_input=False,
+    capture_output=False,
+)
+async def traced_complete_with_tools(
+    model_client: ModelClient,
+    *,
+    system: str,
+    user: str,
+    tools: list[dict[str, Any]],
+    tool_executor: ToolExecutor,
+    max_tokens: int | None = None,
+    max_iterations: int = 10,
+    scenario_name: str | None = None,
+) -> ToolUseCompletion:
+    """Tool-use loop wrapped in a Langfuse generation span.
+
+    Per-tool spans (``harnessit.tools.<name>``) emit independently from
+    inside the executor; this generation span owns the model-side
+    summary — input messages, final output text, summed token counts,
+    iteration count, list of tool names invoked.
+    """
+    completion = await model_client.complete_with_tools(
+        system=system,
+        user=user,
+        tools=tools,
+        tool_executor=tool_executor,
+        max_tokens=max_tokens,
+        max_iterations=max_iterations,
+    )
+
+    metadata: dict[str, Any] = {
+        "stop_reason": completion.stop_reason,
+        "iterations": completion.iterations,
+        "tool_calls": [
+            {"name": tc.name, "id": tc.id} for tc in completion.tool_calls
+        ],
+    }
+    if scenario_name is not None:
+        metadata["scenario_name"] = scenario_name
+
+    get_client().update_current_generation(
+        model=completion.model,
+        input={
+            "system": system,
+            "user": user,
+            "tools": [t["name"] for t in tools],
+        },
         output=completion.text,
         usage_details={
             "input": completion.input_tokens,

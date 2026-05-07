@@ -24,9 +24,10 @@ from typing import Any
 from langfuse import get_client, observe
 
 from harnessit.eval.types import EvalContext, EvalResult, EvalScenario
-from harnessit.model import ModelClient
+from harnessit.model import Completion, ModelClient
 from harnessit.substrate import DoppelgangerClient
-from harnessit.tracing import traced_complete
+from harnessit.tools import Tools
+from harnessit.tracing import traced_complete, traced_complete_with_tools
 
 EVAL_SPAN_NAME = "harnessit.eval.run"
 SCORE_NAME = "harnessit.eval.overall_pass"
@@ -80,12 +81,39 @@ async def run_eval(
     )
 
     user_prompt = scenario.build_user_prompt(context)
-    completion = traced_complete(
-        model_client,
-        system=scenario.system_prompt,
-        user=user_prompt,
-        scenario_name=scenario.name,
-    )
+    tool_calls: tuple = ()
+    iterations = 1
+    if scenario.uses_tools:
+        tools = Tools(
+            substrate=substrate,
+            scenario_name=scenario.target_scenario,
+        )
+        tool_use_completion = await traced_complete_with_tools(
+            model_client,
+            system=scenario.system_prompt,
+            user=user_prompt,
+            tools=tools.schemas,
+            tool_executor=tools.execute,
+            scenario_name=scenario.name,
+        )
+        # Synthesize a Completion for scoring — scorers only inspect text.
+        # Token counts are summed across iterations by the loop.
+        completion = Completion(
+            text=tool_use_completion.text,
+            model=tool_use_completion.model,
+            input_tokens=tool_use_completion.input_tokens,
+            output_tokens=tool_use_completion.output_tokens,
+            stop_reason=tool_use_completion.stop_reason,
+        )
+        tool_calls = tool_use_completion.tool_calls
+        iterations = tool_use_completion.iterations
+    else:
+        completion = traced_complete(
+            model_client,
+            system=scenario.system_prompt,
+            user=user_prompt,
+            scenario_name=scenario.name,
+        )
 
     score = scenario.score(context, completion)
 
@@ -135,6 +163,8 @@ async def run_eval(
         score=score,
         user_prompt=user_prompt,
         langfuse_trace_id=trace_id,
+        tool_calls=tool_calls,
+        iterations=iterations,
     )
 
 
@@ -158,6 +188,14 @@ def format_eval_summary(result: EvalResult) -> str:
         lines.append(f"fct_p50_delta_ns: {result.comparison.get('fct_p50_delta_ns')}")
         lines.append(f"fct_p99_delta_ns: {result.comparison.get('fct_p99_delta_ns')}")
         lines.append(f"fct_p999_delta_ns: {result.comparison.get('fct_p999_delta_ns')}")
+    if result.tool_calls:
+        lines.append("")
+        lines.append(
+            f"--- tool calls ({len(result.tool_calls)} across "
+            f"{result.iterations} iterations) ---"
+        )
+        for i, tc in enumerate(result.tool_calls, start=1):
+            lines.append(f"  {i}. {tc.name}({tc.input}) -> {len(tc.output_serialized)} chars")
     lines.append("")
     lines.append(
         f"--- model output ({result.completion.input_tokens}->"

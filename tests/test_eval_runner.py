@@ -105,6 +105,21 @@ class _FakeSubstrateSession:
                 "confidence": "high",
                 "staleness_class": "stale",
             }
+        elif name == "get_topology":
+            envelope = {
+                "data": {
+                    "scenario": arguments["name"],
+                    "shape": "leaf-spine",
+                    "leaves": 2,
+                    "spines": 4,
+                    "hosts_per_leaf": 8,
+                    "total_hosts": 16,
+                },
+                "source": f"adapter.scenario_topology({arguments['name']!r})",
+                "observed_at_ns": None,
+                "confidence": "high",
+                "staleness_class": "fresh",
+            }
         else:
             raise AssertionError(f"unexpected tool call: {name}")
         return _FakeToolResult(content=[_FakeTextContent(text=json.dumps(envelope))])
@@ -139,6 +154,21 @@ def _make_single_run_scenario(prompt_builder=None) -> EvalScenario:
         build_user_prompt=prompt_builder or (lambda ctx: "user prompt"),
         score=_stub_score,
         expected_to_pass=False,
+    )
+
+
+def _make_tool_using_scenario(prompt_builder=None) -> EvalScenario:
+    """Single-run scenario with uses_tools=True for the Stage 3 path."""
+    return EvalScenario(
+        name="test-tool-using",
+        description="single-run + tool-use test scenario",
+        system_prompt="You are a test assistant.",
+        target_scenario="microburst",
+        baseline_scenario=None,
+        build_user_prompt=prompt_builder or (lambda ctx: "ticket"),
+        score=_stub_score,
+        expected_to_pass=True,
+        uses_tools=True,
     )
 
 
@@ -272,6 +302,112 @@ async def test_run_eval_paired_runs_baseline_target_compare(exporter):
     assert result.comparison == comparison
     # The prompt builder pulled from the comparison
     assert "delta=-5" in api.calls[0]["messages"][0]["content"]
+
+
+# ---------- tool-use shape ----------
+
+
+@dataclass
+class _FakeToolUseBlock:
+    id: str
+    name: str
+    input: dict[str, Any]
+    type: str = "tool_use"
+
+
+class _ScriptedToolUseAPI:
+    """Fake messages.create that returns a scripted tool-use sequence.
+
+    Iteration 1: response with stop_reason=tool_use containing a
+    get_topology tool_use block.
+    Iteration 2: response with stop_reason=end_turn and the final text.
+    """
+
+    def __init__(self, final_text: str) -> None:
+        self.final_text = final_text
+        self.calls: list[dict[str, Any]] = []
+        self._iteration = 0
+
+    def create(self, **kwargs: Any) -> _FakeMessage:
+        self.calls.append(kwargs)
+        self._iteration += 1
+        if self._iteration == 1:
+            return _FakeMessage(
+                content=[
+                    _FakeTextBlock(text="let me check the fabric"),
+                    _FakeToolUseBlock(id="tu_1", name="get_topology", input={}),
+                ],
+                model=kwargs["model"],
+                usage=_FakeUsage(input_tokens=20, output_tokens=10),
+                stop_reason="tool_use",
+            )
+        return _FakeMessage(
+            content=[_FakeTextBlock(text=self.final_text)],
+            model=kwargs["model"],
+            usage=_FakeUsage(input_tokens=60, output_tokens=25),
+            stop_reason="end_turn",
+        )
+
+
+async def test_run_eval_tool_use_invokes_get_topology_through_substrate(exporter):
+    """Stage 3 closing-test path: uses_tools=True scenario triggers the
+    tool-use branch; agent's get_topology() call forwards through the
+    substrate Adapter with the bound scenario name."""
+    session = _FakeSubstrateSession(comparison=None)
+    substrate = DoppelgangerClient(session=session)
+    api = _ScriptedToolUseAPI(final_text="2 leaves x 4 spines, host 11.0.0.1 on leaf 0: pass")
+    model_client = ModelClient(client=_FakeAnthropic(messages=api), model="claude-opus-4-7")
+
+    result = await run_eval(
+        scenario=_make_tool_using_scenario(),
+        substrate=substrate,
+        model_client=model_client,
+        run_id_prefix="tool-use",
+    )
+
+    # Substrate sees: target run_scenario, then get_topology with the bound name
+    tool_names = [c[0] for c in session.calls]
+    assert tool_names == ["run_scenario", "get_topology"]
+    get_topology_args = session.calls[1][1]
+    assert get_topology_args == {"name": "microburst"}, (
+        "harness must bind the scenario.target_scenario when forwarding "
+        "the agent's no-arg get_topology() call"
+    )
+
+    # Two model iterations: tool_use, then end_turn
+    assert len(api.calls) == 2
+    assert api.calls[0]["tools"][0]["name"] == "get_topology"
+
+    # Result preserves the tool-call trail and iteration count
+    assert result.iterations == 2
+    assert len(result.tool_calls) == 1
+    assert result.tool_calls[0].name == "get_topology"
+    assert result.tool_calls[0].input == {}
+    # Output should be the topology data, not the envelope
+    assert result.tool_calls[0].output["shape"] == "leaf-spine"
+    assert result.score.overall_pass is True
+    # Token counts summed across iterations
+    assert result.completion.input_tokens == 80  # 20 + 60
+    assert result.completion.output_tokens == 35  # 10 + 25
+
+
+async def test_run_eval_naked_path_unchanged_when_uses_tools_false(exporter):
+    """Regression guard: scenarios without uses_tools must still take
+    the Stage 2 naked path (no tools= param to the model)."""
+    session = _FakeSubstrateSession(comparison=None)
+    substrate = DoppelgangerClient(session=session)
+    model_client, api = _make_model_client("response: pass")
+
+    await run_eval(
+        scenario=_make_single_run_scenario(),
+        substrate=substrate,
+        model_client=model_client,
+        run_id_prefix="naked",
+    )
+    assert len(api.calls) == 1
+    assert "tools" not in api.calls[0], (
+        "naked path must not pass tools= to messages.create"
+    )
 
 
 async def test_run_eval_paired_metadata_includes_comparison_signals(exporter):
