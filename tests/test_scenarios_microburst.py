@@ -19,6 +19,7 @@ from harnessit.scenarios.microburst import (
     USER_TICKET,
     microburst_symptom_only,
     microburst_with_topology,
+    microburst_with_topology_tool,
 )
 
 
@@ -47,6 +48,31 @@ def test_with_topology_factory_shape():
     assert scenario.name == "microburst-with-topology"
     assert scenario.target_scenario == "microburst"
     assert scenario.baseline_scenario is None
+
+
+def test_with_topology_tool_factory_shape():
+    """Stage 3 closing test scenario: same target as the other two,
+    expected_to_pass=True (testing whether the harness closes the gap),
+    uses_tools=True."""
+    scenario = microburst_with_topology_tool()
+    assert scenario.name == "microburst-with-topology-tool"
+    assert scenario.target_scenario == "microburst"
+    assert scenario.baseline_scenario is None
+    assert scenario.uses_tools is True
+    assert scenario.expected_to_pass is True
+
+
+def test_with_topology_tool_uses_same_user_ticket_as_symptom_only():
+    """The tool variant must share the symptom-only prompt verbatim —
+    if it leaked topology in the prompt as well, the eval wouldn't
+    isolate 'topology came from the tool, not the prompt.'"""
+    tool_scenario = microburst_with_topology_tool()
+    symptom_scenario = microburst_symptom_only()
+    tool_prompt = tool_scenario.build_user_prompt(_ctx())
+    symptom_prompt = symptom_scenario.build_user_prompt(_ctx())
+    assert tool_prompt == symptom_prompt
+    # And it should NOT contain the topology preamble
+    assert TOPOLOGY_PREAMBLE not in tool_prompt
 
 
 # ---------- prompt content ----------

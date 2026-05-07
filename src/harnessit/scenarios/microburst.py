@@ -1,22 +1,27 @@
-"""Microburst-localization eval — two scenarios sharing one substrate run.
+"""Microburst-localization eval — three scenarios sharing one fault.
 
-Stage 2 v2 ships two scenarios under the same underlying microburst
-fault. Both single-run (no paired baseline; real on-call doesn't get
-pre-paired comparisons handed to it). Both naked (single-shot LLM call,
-no tools, no retrieval, no memory). They differ only in the user-prompt
-context:
+Three scenarios under the same underlying microburst fault. All
+single-run (no paired baseline; real on-call doesn't get pre-paired
+comparisons handed to it). They differ only in how the agent gets at
+fabric context:
 
-* ``microburst_symptom_only`` — bare ticket. The agent knows nothing
-  about the fabric beyond what an outside observer reports. The honest
-  failure mode here is "I'd need topology info, telemetry, baseline
-  comparison."
-* ``microburst_with_topology`` — same ticket plus a "what we know about
-  the fabric" preamble (leaf-spine layout, host assignment, link
-  speeds). Demonstrates the marginal value of one piece of context.
-
-Stage 3 will add a third variant where the topology comes from a tool
-the agent can query, rather than being baked into the prompt — that's
-where the harness starts adding capability the LLM doesn't have alone.
+* ``microburst_symptom_only`` — bare ticket, no topology, no tools.
+  Naked single-shot LLM call. The agent knows nothing about the fabric
+  beyond what an outside observer reports. The honest failure mode is
+  "I'd need topology info, telemetry, baseline comparison."
+* ``microburst_with_topology`` — same ticket plus a "what we know
+  about the fabric" preamble (leaf-spine layout, host assignment, link
+  speeds). Naked single-shot. Demonstrates the marginal value of one
+  piece of context.
+* ``microburst_with_topology_tool`` — same bare ticket as
+  symptom-only, but the agent has the ``get_topology`` MCP tool and
+  can query fabric structure on demand. **Stage 3 closing test.** The
+  pedagogical claim — "the harness adds capability the LLM doesn't
+  have alone" — stands or falls on whether this variant scores closer
+  to with-topology than to symptom-only. If the agent uses the tool
+  and reaches comparable triage quality, the harness has earned its
+  weight. If not, either the tool surface is wrong or the model
+  doesn't reach for tools naturally; both are findings worth having.
 
 Quantitative anchor: per the 2026-05-06 microburst recon
 (traces/recon-microburst), default microburst() produces a 1.44x-2.63x
@@ -131,6 +136,41 @@ def microburst_with_topology() -> EvalScenario:
     )
 
 
+def microburst_with_topology_tool() -> EvalScenario:
+    """Stage 3 closing test: same bare ticket as symptom-only, but the
+    agent has the ``get_topology`` tool.
+
+    The user prompt is exactly ``USER_TICKET`` — no fabric layout, no
+    pre-loaded context. The tool surface gives the agent the option to
+    query topology on demand. The pedagogical claim is that this
+    variant should score closer to ``microburst_with_topology`` (which
+    received topology in the prompt) than to ``microburst_symptom_only``
+    (which received nothing). If the model retrieves topology via the
+    tool and reaches comparable triage quality, the harness has earned
+    its weight; if it doesn't reach for the tool, that's a finding.
+
+    ``expected_to_pass`` is True for this variant — distinct from the
+    other two — because we're testing whether the harness *closes the
+    gap*, not whether the floor is bad.
+    """
+    return EvalScenario(
+        name="microburst-with-topology-tool",
+        description=(
+            "Symptom + tool: same bare ticket as -symptom-only, but the "
+            "agent has the get_topology tool. Tests whether the harness "
+            "adds capability the LLM doesn't have alone (vs. the "
+            "topology being hardcoded in the prompt)."
+        ),
+        system_prompt=SYSTEM_PROMPT,
+        target_scenario=TARGET_SCENARIO,
+        baseline_scenario=None,
+        build_user_prompt=_build_symptom_only_prompt,  # SAME ticket as symptom-only
+        score=_score,
+        expected_to_pass=True,
+        uses_tools=True,
+    )
+
+
 __all__ = [
     "SYSTEM_PROMPT",
     "TARGET_SCENARIO",
@@ -138,4 +178,5 @@ __all__ = [
     "USER_TICKET",
     "microburst_symptom_only",
     "microburst_with_topology",
+    "microburst_with_topology_tool",
 ]

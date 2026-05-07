@@ -5,9 +5,12 @@ Usage::
     python -m harnessit                                # default scenario
     python -m harnessit microburst-symptom-only
     python -m harnessit microburst-with-topology
+    python -m harnessit microburst-with-topology-tool
 
-Stage 2 ships two scenarios that share the same underlying microburst
-fault but vary in how much context the user prompt carries. Output is
+Stage 3 ships three scenarios that share the same underlying microburst
+fault but vary in how the agent gets at fabric context: nothing
+(symptom-only), pre-loaded in the prompt (with-topology), or available
+on demand via a tool (with-topology-tool). Output is
 ``format_eval_summary`` text to stdout. Spans + scores emit to Langfuse
 Cloud for the trajectory viewer (Stage 4) to render.
 """
@@ -22,13 +25,18 @@ from harnessit.config import load_settings
 from harnessit.eval import EvalResult
 from harnessit.eval.runner import format_eval_summary, run_eval
 from harnessit.model import ModelClient
-from harnessit.scenarios import microburst_symptom_only, microburst_with_topology
+from harnessit.scenarios import (
+    microburst_symptom_only,
+    microburst_with_topology,
+    microburst_with_topology_tool,
+)
 from harnessit.substrate import DoppelgangerClient
 from harnessit.tracing import flush_langfuse, init_langfuse
 
 SCENARIO_FACTORIES = {
     "microburst-symptom-only": microburst_symptom_only,
     "microburst-with-topology": microburst_with_topology,
+    "microburst-with-topology-tool": microburst_with_topology_tool,
 }
 DEFAULT_SCENARIO = "microburst-symptom-only"
 
