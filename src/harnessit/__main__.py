@@ -23,6 +23,7 @@ import sys
 
 from harnessit.config import load_settings
 from harnessit.eval import EvalResult
+from harnessit.eval.judge import Judge
 from harnessit.eval.runner import format_eval_summary, run_eval
 from harnessit.model import ModelClient
 from harnessit.scenarios import (
@@ -41,16 +42,20 @@ SCENARIO_FACTORIES = {
 DEFAULT_SCENARIO = "microburst-symptom-only"
 
 
-async def _run(scenario_name: str) -> EvalResult:
+async def _run(scenario_name: str, *, use_judge: bool, judge_model: str | None) -> EvalResult:
     settings = load_settings()
     init_langfuse(settings)
     scenario = SCENARIO_FACTORIES[scenario_name]()
+    judge = (
+        Judge.from_settings(settings, model=judge_model) if use_judge else None
+    )
     async with DoppelgangerClient.connect() as substrate:
         model_client = ModelClient.from_settings(settings)
         result = await run_eval(
             scenario=scenario,
             substrate=substrate,
             model_client=model_client,
+            judge=judge,
         )
     flush_langfuse()
     return result
@@ -68,9 +73,28 @@ def main(argv: list[str] | None = None) -> int:
         choices=sorted(SCENARIO_FACTORIES),
         help="Scenario to run (default: %(default)s).",
     )
+    parser.add_argument(
+        "--no-judge",
+        action="store_true",
+        help=(
+            "Disable LLM-as-judge scoring; use keyword scoring only. "
+            "Useful for fast iteration when you don't need the calibration "
+            "table."
+        ),
+    )
+    parser.add_argument(
+        "--judge-model",
+        default=None,
+        help=(
+            "Override the judge model id (default: claude-opus-4-7). "
+            "Ignored when --no-judge is set."
+        ),
+    )
     args = parser.parse_args(argv)
 
-    result = asyncio.run(_run(args.scenario))
+    result = asyncio.run(
+        _run(args.scenario, use_judge=not args.no_judge, judge_model=args.judge_model)
+    )
     print(format_eval_summary(result))
     return 0 if result.score.overall_pass else 1
 

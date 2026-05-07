@@ -20,6 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+from harnessit.eval.judge import Judgment
 from harnessit.eval.scoring import Score
 from harnessit.model import Completion, ToolCall
 
@@ -95,3 +96,12 @@ class EvalResult:
     # naked scenarios; preserves agent's tool round-trips for analysis.
     tool_calls: tuple[ToolCall, ...] = ()
     iterations: int = 1
+    # Stage 3 v0.4-candidate: dual-scoring for the keyword-vs-LLM
+    # calibration table. ``keyword_score`` is always populated. When
+    # the runner is given a judge, ``llm_judgment`` populates on
+    # success or ``judge_error`` populates on failure (mutually
+    # exclusive). The primary ``score`` field (above) is derived:
+    # llm_judgment.to_score() when present, else keyword_score.
+    keyword_score: Score | None = None
+    llm_judgment: Judgment | None = None
+    judge_error: str | None = None

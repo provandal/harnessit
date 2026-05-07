@@ -9,6 +9,14 @@ from typing import Any
 import pytest
 
 from harnessit.eval import EvalContext, EvalScenario, run_eval
+from harnessit.eval.judge import (
+    DEFAULT_JUDGE_MODEL,
+    RUBRIC_CRITERIA,
+    CriterionJudgment,
+    Judge,
+    JudgeError,
+    Judgment,
+)
 from harnessit.eval.runner import EVAL_SPAN_NAME, format_eval_summary
 from harnessit.eval.scoring import Score
 from harnessit.model import Completion, ModelClient
@@ -550,3 +558,244 @@ def test_format_eval_summary_paired_includes_comparison():
     assert "flow_count_delta: -5" in text
     assert "xyz__baseline" in text
     assert "FAIL" in text
+
+
+# ---------- LLM judge integration ----------
+
+
+class _StubJudge:
+    """Stand-in for harnessit.eval.judge.Judge that returns a staged
+    Judgment or raises a staged JudgeError. Lets us exercise the
+    runner's judge branch without a real client."""
+
+    def __init__(
+        self,
+        *,
+        judgment: Judgment | None = None,
+        raise_exc: Exception | None = None,
+        model: str = DEFAULT_JUDGE_MODEL,
+    ) -> None:
+        self.judgment = judgment
+        self.raise_exc = raise_exc
+        self.model = model
+        self.calls: list[dict[str, Any]] = []
+
+    async def score(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        agent_response: str,
+        tool_calls: tuple = (),
+    ) -> Judgment:
+        self.calls.append({
+            "system_prompt": system_prompt,
+            "user_prompt": user_prompt,
+            "agent_response": agent_response,
+            "tool_calls": tool_calls,
+        })
+        if self.raise_exc is not None:
+            raise self.raise_exc
+        assert self.judgment is not None, "test forgot to stage a judgment"
+        return self.judgment
+
+
+def _make_judgment(*, overall_pass: bool, criteria_overrides: dict[str, bool] | None = None) -> Judgment:
+    """Build a Judgment with all RUBRIC_CRITERIA populated.
+
+    Each criterion's pass defaults to ``overall_pass`` unless overridden.
+    """
+    overrides = criteria_overrides or {}
+    return Judgment(
+        overall_pass=overall_pass,
+        overall_rationale=(
+            "stub overall rationale (overall_pass=" + str(overall_pass) + ")"
+        ),
+        criteria=tuple(
+            CriterionJudgment(
+                name=name,
+                passed=overrides.get(name, overall_pass),
+                rationale=f"stub rationale for {name}",
+            )
+            for name, _description in RUBRIC_CRITERIA
+        ),
+        judge_model=DEFAULT_JUDGE_MODEL,
+    )
+
+
+async def test_run_eval_no_judge_keeps_keyword_path_unchanged(exporter):
+    """Regression guard: when no judge is passed, behavior matches the
+    pre-judge runner shape exactly. score == keyword_score, llm_judgment
+    is None, judge_error is None."""
+    session = _FakeSubstrateSession(comparison=None)
+    substrate = DoppelgangerClient(session=session)
+    model_client, _ = _make_model_client("triage plan: pass")
+
+    result = await run_eval(
+        scenario=_make_single_run_scenario(),
+        substrate=substrate,
+        model_client=model_client,
+        run_id_prefix="no-judge",
+    )
+
+    assert result.llm_judgment is None
+    assert result.judge_error is None
+    assert result.keyword_score is not None
+    # Primary score is the keyword score by reference (same object)
+    assert result.score is result.keyword_score
+
+
+async def test_run_eval_with_judge_uses_llm_score_as_primary(exporter):
+    """When the judge succeeds, the primary score reflects the judge's
+    verdict, not the keyword scorer's. Both scores are preserved on
+    the EvalResult for the calibration table."""
+    session = _FakeSubstrateSession(comparison=None)
+    substrate = DoppelgangerClient(session=session)
+    # The agent response is a single weak word; keyword scorer will fail
+    # all four criteria.
+    model_client, _ = _make_model_client("ok")
+    # The judge will be staged with overall_pass=True, demonstrating that
+    # the judge can override the keyword scorer.
+    stub_judge = _StubJudge(judgment=_make_judgment(overall_pass=True))
+
+    result = await run_eval(
+        scenario=_make_single_run_scenario(),
+        substrate=substrate,
+        model_client=model_client,
+        run_id_prefix="llm-primary",
+        judge=stub_judge,  # type: ignore[arg-type]
+    )
+
+    # Primary score reflects the judge
+    assert result.score.overall_pass is True
+    # Both scores preserved
+    assert result.llm_judgment is not None
+    assert result.llm_judgment.overall_pass is True
+    assert result.keyword_score is not None
+    assert result.keyword_score.overall_pass is False, (
+        "keyword should fail on this weak response — calibration only "
+        "matters if the two scores can disagree"
+    )
+    assert result.judge_error is None
+    # Judge was called with the agent's actual response and the system prompt
+    assert len(stub_judge.calls) == 1
+    assert stub_judge.calls[0]["agent_response"] == "ok"
+    assert stub_judge.calls[0]["system_prompt"] == "You are a test assistant."
+
+
+async def test_run_eval_falls_back_to_keyword_on_judge_error(exporter):
+    """JudgeError → primary score is the keyword score, judge_error is
+    populated, llm_judgment stays None. The eval still completes."""
+    session = _FakeSubstrateSession(comparison=None)
+    substrate = DoppelgangerClient(session=session)
+    model_client, _ = _make_model_client("triage plan: pass")
+    stub_judge = _StubJudge(raise_exc=JudgeError("simulated network down"))
+
+    result = await run_eval(
+        scenario=_make_single_run_scenario(),
+        substrate=substrate,
+        model_client=model_client,
+        run_id_prefix="judge-fail",
+        judge=stub_judge,  # type: ignore[arg-type]
+    )
+
+    assert result.llm_judgment is None
+    assert result.judge_error == "simulated network down"
+    assert result.keyword_score is not None
+    assert result.score is result.keyword_score
+    # Eval still completed; primary score is whatever keyword produced
+    assert result.score.overall_pass is True  # 'pass' literal in completion
+
+
+async def test_run_eval_judge_receives_tool_calls_for_tool_using_scenarios(exporter):
+    """When the agent uses tools, the judge should see the tool calls
+    so it can evaluate 'did the agent retrieve the right data?'"""
+    session = _FakeSubstrateSession(comparison=None)
+    substrate = DoppelgangerClient(session=session)
+    api = _ScriptedToolUseAPI(final_text="leaf 0 is the bottleneck: pass")
+    model_client = ModelClient(client=_FakeAnthropic(messages=api), model="claude-opus-4-7")
+    stub_judge = _StubJudge(judgment=_make_judgment(overall_pass=True))
+
+    await run_eval(
+        scenario=_make_tool_using_scenario(),
+        substrate=substrate,
+        model_client=model_client,
+        run_id_prefix="judge-tool",
+        judge=stub_judge,  # type: ignore[arg-type]
+    )
+
+    assert len(stub_judge.calls) == 1
+    forwarded = stub_judge.calls[0]["tool_calls"]
+    assert len(forwarded) == 1
+    assert forwarded[0].name == "get_topology"
+
+
+def test_format_eval_summary_renders_keyword_vs_llm_table():
+    """When both scores are present, the summary renders a side-by-side
+    table — the actual calibration view we want to read at trace-review
+    time."""
+    from harnessit.eval.types import EvalResult
+
+    keyword = Score(
+        overall_pass=False,
+        criteria={
+            "considers_multiple_hypotheses": True,
+            "names_telemetry_to_query": False,
+            "acknowledges_unknowns": False,
+            "coherent_investigation_order": True,
+        },
+        rationale="keyword: 2/4",
+    )
+    llm = _make_judgment(
+        overall_pass=True,
+        criteria_overrides={
+            "considers_multiple_hypotheses": True,
+            "names_telemetry_to_query": True,
+            "acknowledges_unknowns": True,
+            "coherent_investigation_order": True,
+        },
+    )
+    result = EvalResult(
+        scenario_name="microburst-with-topology-tool",
+        target_run_id="t",
+        target_trace_dir="traces/t",
+        completion=Completion(
+            text="response", model="m", input_tokens=1, output_tokens=1, stop_reason="end_turn"
+        ),
+        score=llm.to_score(),
+        user_prompt="u",
+        keyword_score=keyword,
+        llm_judgment=llm,
+    )
+    text = format_eval_summary(result)
+    assert "keyword | LLM" in text
+    # Disagreement is visible: keyword FAIL on one criterion, LLM PASS
+    assert "names_telemetry_to_query: FAIL | PASS" in text
+    # Overall row shows both verdicts
+    assert "keyword=FAIL | LLM=PASS" in text
+    # Per-criterion rationale section renders
+    assert "LLM judge rationale" in text
+    # Primary marker indicates LLM is in charge
+    assert "LLM judge" in text
+
+
+def test_format_eval_summary_falls_back_to_single_table_when_no_judge():
+    """Backward compat: when llm_judgment is None and keyword_score is
+    None (legacy EvalResult shape), the summary still renders."""
+    from harnessit.eval.types import EvalResult
+
+    result = EvalResult(
+        scenario_name="legacy",
+        target_run_id="t",
+        target_trace_dir="traces/t",
+        completion=Completion(
+            text="response", model="m", input_tokens=1, output_tokens=1, stop_reason="end_turn"
+        ),
+        score=Score(overall_pass=True, criteria={"a": True}, rationale="ok"),
+        user_prompt="u",
+        # keyword_score and llm_judgment both None
+    )
+    text = format_eval_summary(result)
+    assert "scoring" in text
+    assert "a: PASS" in text
+    assert "overall_pass: True" in text
