@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>HarnessIT trajectory — microburst-with-topology</title>
+  <style>
+:root {
+  --bg: #fafafa; --fg: #1a1a1a; --accent: #2563eb;
+  --muted: #6b7280; --pass: #15803d; --fail: #b91c1c;
+  --panel-bg: #ffffff; --border: #e5e7eb;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0; padding: 2rem; max-width: 1100px;
+  margin-left: auto; margin-right: auto;
+  background: var(--bg); color: var(--fg); line-height: 1.5;
+}
+h1 { margin: 0 0 0.5rem 0; font-size: 1.5rem; }
+h2 { margin: 1.5rem 0 0.75rem; font-size: 1.15rem; }
+.trace-header { padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.trace-id, .timestamp { color: var(--muted); font-size: 0.875rem; margin: 0.25rem 0; }
+.eval-meta { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.75rem; margin-top: 0.5rem; font-size: 0.875rem; }
+.eval-meta dt { color: var(--muted); }
+.eval-meta dd { margin: 0; }
+.diagram { background: var(--panel-bg); padding: 1rem; border-radius: 6px; border: 1px solid var(--border); margin: 1rem 0; overflow-x: auto; }
+section { background: var(--panel-bg); padding: 1rem 1.5rem; margin: 1rem 0; border-radius: 6px; border: 1px solid var(--border); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { padding: 0.5rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; color: var(--muted); }
+.criterion-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+td.pass { color: var(--pass); font-weight: 600; }
+td.fail { color: var(--fail); font-weight: 600; }
+.rationale { color: var(--fg); }
+.judge-overall { margin-top: 0.75rem; padding: 0.75rem; background: #f3f4f6; border-radius: 4px; font-size: 0.95rem; }
+details.message { background: var(--panel-bg); margin: 0.5rem 0; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; }
+details.message summary { cursor: pointer; }
+details.message summary .label { color: var(--accent); }
+.span-id { font-size: 0.75rem; color: var(--muted); margin: 0.25rem 0; }
+.payload { background: #f9fafb; padding: 0.5rem; border-radius: 4px; font-size: 0.825rem; overflow-x: auto; max-height: 24rem; overflow-y: auto; white-space: pre-wrap; }
+.ctx-block { margin: 0.5rem 0; }
+.ctx-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+.ctx-empty { color: var(--muted); font-style: italic; }
+.tools-list { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; padding: 0.5rem; background: #f9fafb; border-radius: 4px; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; }
+.section-heading { color: var(--muted); font-size: 0.875rem; margin: 1.5rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+</style>
+</head>
+<body>
+  <header class='trace-header'>
+  <h1>HarnessIT trajectory: microburst-with-topology</h1>
+  <div class='trace-id'>trace: <code>bf204faa2834c54c5eef6cc207f72379</code></div>
+  <div class='timestamp'>2026-05-07T17:45:57.550000+00:00</div>
+  <dl class='eval-meta'><dt>scenario_name</dt><dd>microburst-with-topology</dd><dt>scoring_mode</dt><dd>llm_judge</dd><dt>expected_to_pass</dt><dd>False</dd><dt>target_run_id</dt><dd>microburst-with-topology-1778175957__target</dd></dl>
+</header>
+
+  <section class="diagram-section">
+    <h2>Sequence diagram</h2>
+    <div class="diagram">
+      <pre class="mermaid">sequenceDiagram
+  participant USER as User
+  participant AGENT as Agent
+  participant JUDGE as Judge
+  USER-&gt;&gt;AGENT: help ticket
+  AGENT--&gt;&gt;USER: triage response
+  AGENT-&gt;&gt;JUDGE: evaluate response
+  JUDGE--&gt;&gt;AGENT: verdict - PASS</pre>
+    </div>
+  </section>
+
+  <section class='scores-panel'>
+  <h2>Trace-level scores</h2>
+  <table class='scores-table'>
+    <thead><tr><th>Name</th><th>Value</th><th>Comment</th></tr></thead>
+    <tbody><tr><td class='criterion-name'>harnessit.eval.overall_pass</td><td class='pass'>1.0</td><td>All five criteria pass: the response names multiple hypothesis classes, lists specific telemetry, hedges and asks clarifying questions, presents an ordered plan, and integrates concrete fabric context (11.0.0.1, leaf 0, 800G link, conservative PFC threshold) into its reasoning.</td></tr></tbody>
+  </table>
+</section>
+  <section class='judge-panel'>
+  <h2>LLM judge — per-criterion rationale</h2>
+  <table class='judge-table'>
+    <thead><tr><th>Verdict</th><th>Criterion</th><th>Rationale</th></tr></thead>
+    <tbody><tr><td class='pass'>PASS</td><td class='criterion-name'>considers_multiple_hypotheses</td><td class='rationale'>Names multiple distinct mechanism classes: incast (&#x27;many-to-one into 11.0.0.1&#x27;), PFC HoL blocking/propagation (&#x27;PFC head-of-line blocking — a known PowerTCP/DCQCN failure mode&#x27;), host-side issues (&#x27;degraded PCIe link... host-side stall&#x27;), and link/optical degradation (&#x27;marginal optic causing FEC correction&#x27;). Easily 3+ classes.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>names_telemetry_to_query</td><td class='rationale'>Names many specific telemetry sources: &#x27;ECN-marked packet count rate&#x27;, &#x27;PFC TX pause frames&#x27;, &#x27;Egress queue depth / buffer occupancy&#x27;, &#x27;Output discards / no-buffer drops&#x27;, &#x27;NIC RX pause frames&#x27;, &#x27;CNPs sent, CNPs received, retransmits&#x27;, &#x27;FEC/CRC errors&#x27;. Well over 4 categories with specificity.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>acknowledges_unknowns</td><td class='rationale'>Asks clarifying questions (&#x27;Is the 1.5x slowdown seen only by jobs whose traffic terminates at 11.0.0.1...&#x27;), uses hedging (&#x27;My leading hypothesis&#x27;, &#x27;almost certainly&#x27;), and names data gaps (&#x27;If you can pull (a) leaf 0 → 11.0.0.1 port counters... that should let us confirm or rule this out&#x27;).</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>coherent_investigation_order</td><td class='rationale'>Structured with numbered clarifying questions, then ordered sections (&#x27;ordered by likelihood given the symptom&#x27;) grouped by location: leaf 0 host-facing port, leaf 0 spine-facing ports, host itself, then a leading hypothesis synthesis.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>synthesizes_available_context</td><td class='rationale'>Integrates fabric specifics: cites &#x27;11.0.0.1&#x27;, &#x27;leaf 0&#x27;, uses &#x27;8 hosts/leaf and a single 800G host link&#x27; in incast reasoning, and leverages the &#x27;PFC threshold is conservative&#x27; detail to shape the leading hypothesis (&#x27;given &quot;PFC threshold is conservative&quot; + slowdown localized to one host&#x27;). Explicit meta-reasoning that the problem &#x27;is almost certainly on the receive path into that host... rather than fabric-wide&#x27;.</td></tr></tbody>
+  </table>
+  <div class='judge-overall'><strong>Overall (claude-opus-4-7):</strong> All five criteria pass: the response names multiple hypothesis classes, lists specific telemetry, hedges and asks clarifying questions, presents an ordered plan, and integrates concrete fabric context (11.0.0.1, leaf 0, 800G link, conservative PFC threshold) into its reasoning.</div>
+</section>
+
+  <section class="messages-section">
+    <h2>Messages (4)</h2>
+    <details class='message' open>
+  <summary><strong>1.</strong> User → Agent <span class='label'>help ticket</span></summary>
+  <div class='span-id'>span: <code>6e18e3cccd085624</code></div>
+  <div class='ctx-block'><div class='ctx-label'>system prompt</div><pre class='payload'>You are a network-investigation assistant for an RDMA leaf-spine fabric. Help the user diagnose their issue.</pre></div><div class='ctx-block'><div class='ctx-label'>tools available to agent</div><div class='tools-list ctx-empty'>none (naked model)</div></div><div class='ctx-block'><div class='ctx-label'>user prompt (help ticket)</div><pre class='payload'>Fabric layout (what we know):
+  - 2-leaf, 4-spine RDMA fabric (full mesh leaf &lt;-&gt; spine).
+  - 8 hosts per leaf (16 hosts total).
+  - Host 11.0.0.1 is on leaf 0.
+  - Links: 800 Gbps host &lt;-&gt; leaf, 800 Gbps leaf &lt;-&gt; spine.
+  - Congestion control: PowerTCP (DCQCN-class) with ECN marking.
+  - PFC is configured but its trigger threshold is conservative.
+
+Hey network team — step time on jobs targeting host 11.0.0.1 is up about 1.5x compared to baseline. Started this morning around 09:14 UTC. Can you help figure out what&#x27;s going on?
+</pre></div>
+</details>
+<details class='message'>
+  <summary><strong>2.</strong> Agent ← User <span class='label'>triage response</span></summary>
+  <div class='span-id'>span: <code>ab723b2fff67a897</code></div>
+  <pre class='payload'>{
+  &quot;text&quot;: &quot;Happy to dig in. A 1.5x step-time regression localized to traffic landing on 11.0.0.1 is a useful signal — it tells us the problem is almost certainly on the receive path into that host, or on the leaf 0 egress port toward it, rather than fabric-wide.\n\nBefore I start pulling counters, a few clarifying questions so I don&#x27;t chase the wrong tail:\n\n1. **Scope of the regression**\n   - Is the 1.5x slowdown seen only by jobs whose traffic *terminates* at 11.0.0.1, or also by jobs where 11.0.0.1 is a sender?\n   - Are other hosts on leaf 0 (the other 7) also degraded, or is it just 11.0.0.1?\n   - Any jobs entirely on leaf 1 affected? (If yes, it&#x27;s not purely a leaf-0 issue.)\n\n2. **Change correlation at 09:14 UTC**\n   - Any config pushes, firmware/NIC driver updates, QoS/ECN/PFC threshold changes, or new tenant workloads starting around then?\n   - Any link flaps or optics replacements logged on leaf 0 ports?\n\n3. **Traffic pattern**\n   - Is this an incast-heavy workload (many-to-one into 11.0.0.1)? With 8 hosts/leaf and a single 800G host link, even modest fan-in can saturate the receiver.\n\nWhile you gather that, here&#x27;s what I&#x27;d look at in parallel — ordered by likelihood given the symptom:\n\n**On leaf 0, port facing 11.0.0.1 (egress to host):**\n- ECN-marked packet count rate — should be elevated if PowerTCP is doing its job, but a sharp jump from baseline points to sustained congestion at that port.\n- PFC TX pause frames sent toward the host. Even with a conservative threshold, sustained pause = receiver NIC isn&#x27;t draining fast enough.\n- Egress queue depth / buffer occupancy on that port.\n- Output discards / no-buffer drops.\n\n**On leaf 0, spine-facing ports:**\n- PFC RX pauses received from spines. If a spine is pausing leaf 0, that means leaf 0&#x27;s uplink queues are backing up — which can happen if the host link is the actual bottleneck and backpressure is propagating (PFC head-of-line blocking — a known PowerTCP/DCQCN failure mode when PFC fires).\n- ECN marks on uplink queues.\n\n**On host 11.0.0.1 itself:**\n- NIC RX pause frames received (mirrors leaf TX pauses).\n- RDMA NIC counters: out-of-sequence, CNPs sent, CNPs received, retransmits.\n- PCIe / host-side backpressure: is the NIC able to post completions fast enough? A degraded PCIe link, a noisy CPU, or memory pressure on the host can make the NIC the slow drain — and the fabric just reports the symptom.\n- Link FEC/CRC errors on the host&lt;-&gt;leaf 0 link. A marginal optic causing FEC correction can quietly cut effective throughput without flapping the link.\n\n**My leading hypothesis** given \&quot;PFC threshold is conservative\&quot; + slowdown localized to one host: the host NIC or its host-link is draining slowly (bad optic, FEC errors, or host-side stall), leaf 0 fills the egress queue toward 11.0.0.1, ECN marks rise, and eventually PFC fires toward the host. If PFC also propagates upstream to spines, you&#x27;d see victim flows (unrelated traffic sharing those spine queues) get hit too — which would explain step-time impact even on jobs that aren&#x27;t obviously incasting on 11.0.0.1.\n\nIf you can pull (a) leaf 0 → 11.0.0.1 port counters (ECN, PFC TX, discards, FEC), and (b) 11.0.0.1 NIC counters (PFC RX, CNP, retransmits, FEC) for a window spanning 09:00–09:30 UTC, that should let us confirm or rule this out quickly.&quot;,
+  &quot;model&quot;: &quot;claude-opus-4-7&quot;,
+  &quot;input_tokens&quot;: 299,
+  &quot;output_tokens&quot;: 1344
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>3.</strong> Agent → Judge <span class='label'>evaluate response</span></summary>
+  <div class='span-id'>span: <code>be002a242e0d5859</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {
+    &quot;judge_model&quot;: &quot;claude-opus-4-7&quot;,
+    &quot;agent_response_length&quot;: 3296,
+    &quot;tool_calls_count&quot;: 0
+  }
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>4.</strong> Judge ← Agent <span class='label'>verdict: PASS</span></summary>
+  <div class='span-id'>span: <code>be002a242e0d5859</code></div>
+  <pre class='payload'>{
+  &quot;output&quot;: {
+    &quot;overall_pass&quot;: true,
+    &quot;overall_rationale&quot;: &quot;All five criteria pass: the response names multiple hypothesis classes, lists specific telemetry, hedges and asks clarifying questions, presents an ordered plan, and integrates concrete fabric context (11.0.0.1, leaf 0, 800G link, conservative PFC threshold) into its reasoning.&quot;,
+    &quot;criteria&quot;: [
+      {
+        &quot;name&quot;: &quot;considers_multiple_hypotheses&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Names multiple distinct mechanism classes: incast (&#x27;many-to-one into 11.0.0.1&#x27;), PFC HoL blocking/propagation (&#x27;PFC head-of-line blocking — a known PowerTCP/DCQCN failure mode&#x27;), host-side issues (&#x27;degraded PCIe link... host-side stall&#x27;), and link/optical degradation (&#x27;marginal optic causing FEC correction&#x27;). Easily 3+ classes.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;names_telemetry_to_query&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Names many specific telemetry sources: &#x27;ECN-marked packet count rate&#x27;, &#x27;PFC TX pause frames&#x27;, &#x27;Egress queue depth / buffer occupancy&#x27;, &#x27;Output discards / no-buffer drops&#x27;, &#x27;NIC RX pause frames&#x27;, &#x27;CNPs sent, CNPs received, retransmits&#x27;, &#x27;FEC/CRC errors&#x27;. Well over 4 categories with specificity.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;acknowledges_unknowns&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Asks clarifying questions (&#x27;Is the 1.5x slowdown seen only by jobs whose traffic terminates at 11.0.0.1...&#x27;), uses hedging (&#x27;My leading hypothesis&#x27;, &#x27;almost certainly&#x27;), and names data gaps (&#x27;If you can pull (a) leaf 0 → 11.0.0.1 port counters... that should let us confirm or rule this out&#x27;).&quot;
+      },
+      {
+        &quot;name&quot;: &quot;coherent_investigation_order&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Structured with numbered clarifying questions, then ordered sections (&#x27;ordered by likelihood given the symptom&#x27;) grouped by location: leaf 0 host-facing port, leaf 0 spine-facing ports, host itself, then a leading hypothesis synthesis.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;synthesizes_available_context&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Integrates fabric specifics: cites &#x27;11.0.0.1&#x27;, &#x27;leaf 0&#x27;, uses &#x27;8 hosts/leaf and a single 800G host link&#x27; in incast reasoning, and leverages the &#x27;PFC threshold is conservative&#x27; detail to shape the leading hypothesis (&#x27;given \&quot;PFC threshold is conservative\&quot; + slowdown localized to one host&#x27;). Explicit meta-reasoning that the problem &#x27;is almost certainly on the receive path into that host... rather than fabric-wide&#x27;.&quot;
+      }
+    ]
+  },
+  &quot;judge_model&quot;: &quot;claude-opus-4-7&quot;
+}</pre>
+</details>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', sequence: { showSequenceNumbers: true } });
+  </script>
+</body>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>HarnessIT trajectory — microburst-with-topology-tool</title>
+  <style>
+:root {
+  --bg: #fafafa; --fg: #1a1a1a; --accent: #2563eb;
+  --muted: #6b7280; --pass: #15803d; --fail: #b91c1c;
+  --panel-bg: #ffffff; --border: #e5e7eb;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0; padding: 2rem; max-width: 1100px;
+  margin-left: auto; margin-right: auto;
+  background: var(--bg); color: var(--fg); line-height: 1.5;
+}
+h1 { margin: 0 0 0.5rem 0; font-size: 1.5rem; }
+h2 { margin: 1.5rem 0 0.75rem; font-size: 1.15rem; }
+.trace-header { padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.trace-id, .timestamp { color: var(--muted); font-size: 0.875rem; margin: 0.25rem 0; }
+.eval-meta { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.75rem; margin-top: 0.5rem; font-size: 0.875rem; }
+.eval-meta dt { color: var(--muted); }
+.eval-meta dd { margin: 0; }
+.diagram { background: var(--panel-bg); padding: 1rem; border-radius: 6px; border: 1px solid var(--border); margin: 1rem 0; overflow-x: auto; }
+section { background: var(--panel-bg); padding: 1rem 1.5rem; margin: 1rem 0; border-radius: 6px; border: 1px solid var(--border); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { padding: 0.5rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; color: var(--muted); }
+.criterion-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+td.pass { color: var(--pass); font-weight: 600; }
+td.fail { color: var(--fail); font-weight: 600; }
+.rationale { color: var(--fg); }
+.judge-overall { margin-top: 0.75rem; padding: 0.75rem; background: #f3f4f6; border-radius: 4px; font-size: 0.95rem; }
+details.message { background: var(--panel-bg); margin: 0.5rem 0; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; }
+details.message summary { cursor: pointer; }
+details.message summary .label { color: var(--accent); }
+.span-id { font-size: 0.75rem; color: var(--muted); margin: 0.25rem 0; }
+.payload { background: #f9fafb; padding: 0.5rem; border-radius: 4px; font-size: 0.825rem; overflow-x: auto; max-height: 24rem; overflow-y: auto; white-space: pre-wrap; }
+.ctx-block { margin: 0.5rem 0; }
+.ctx-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+.ctx-empty { color: var(--muted); font-style: italic; }
+.tools-list { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; padding: 0.5rem; background: #f9fafb; border-radius: 4px; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; }
+.section-heading { color: var(--muted); font-size: 0.875rem; margin: 1.5rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+</style>
+</head>
+<body>
+  <header class='trace-header'>
+  <h1>HarnessIT trajectory: microburst-with-topology-tool</h1>
+  <div class='trace-id'>trace: <code>8c4399b12477966d8ca0ad3fb1a1323d</code></div>
+  <div class='timestamp'>2026-05-07T17:46:57.664000+00:00</div>
+  <dl class='eval-meta'><dt>scenario_name</dt><dd>microburst-with-topology-tool</dd><dt>scoring_mode</dt><dd>llm_judge</dd><dt>expected_to_pass</dt><dd>True</dd><dt>target_run_id</dt><dd>microburst-with-topology-tool-1778176017__target</dd></dl>
+</header>
+
+  <section class="diagram-section">
+    <h2>Sequence diagram</h2>
+    <div class="diagram">
+      <pre class="mermaid">sequenceDiagram
+  participant USER as User
+  participant AGENT as Agent
+  participant TOOL as Tool
+  participant JUDGE as Judge
+  USER-&gt;&gt;AGENT: help ticket
+  AGENT-&gt;&gt;TOOL: get_topology
+  TOOL--&gt;&gt;AGENT: get_topology → result
+  AGENT--&gt;&gt;USER: triage response
+  AGENT-&gt;&gt;JUDGE: evaluate response
+  JUDGE--&gt;&gt;AGENT: verdict - PASS</pre>
+    </div>
+  </section>
+
+  <section class='scores-panel'>
+  <h2>Trace-level scores</h2>
+  <table class='scores-table'>
+    <thead><tr><th>Name</th><th>Value</th><th>Comment</th></tr></thead>
+    <tbody><tr><td class='criterion-name'>harnessit.eval.overall_pass</td><td class='pass'>1.0</td><td>All five criteria pass: the response names multiple hypothesis classes, specifies concrete telemetry, hedges and asks clarifying questions, presents an ordered investigation plan, and integrates specific topology entities (leaf 0/node 16, spines 18-21, asymmetry=false) into the analysis.&quot;</td></tr></tbody>
+  </table>
+</section>
+  <section class='judge-panel'>
+  <h2>LLM judge — per-criterion rationale</h2>
+  <table class='judge-table'>
+    <thead><tr><th>Verdict</th><th>Criterion</th><th>Rationale</th></tr></thead>
+    <tbody><tr><td class='pass'>PASS</td><td class='criterion-name'>considers_multiple_hypotheses</td><td class='rationale'>Names 4 distinct mechanism classes: &#x27;workload/traffic-pattern change ... incast&#x27;, &#x27;ECMP hash polarization&#x27;, &#x27;degraded component ... flapping link, a stuck queue, or a NIC-side issue&#x27;, and &#x27;Host-local issue on 11.0.0.1 (NIC, PCIe, memory pressure)&#x27;.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>names_telemetry_to_query</td><td class='rationale'>Names specific telemetry: &#x27;Per-spine utilization and ECN/PFC counters on leaf 0&#x27;s uplinks&#x27;, &#x27;Queue depth and drops on leaf 0&#x27;s downlink&#x27;, &#x27;NIC counters on 11.0.0.1 (CNP received, PFC RX, completion latency)&#x27;, plus per-flow telemetry — at least 4 distinct categories.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>acknowledges_unknowns</td><td class='rationale'>Hedges with &#x27;The topology tool would not necessarily reflect this&#x27; and asks clarifying questions: &#x27;Do you have access to switch counters or per-flow telemetry I can pull next?&#x27; and &#x27;if you can tell me which source hosts the affected job runs on&#x27;.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>coherent_investigation_order</td><td class='rationale'>Uses numbered hypothesis list (1-4) and explicit ordering: &#x27;To go further I&#x27;d want to look at, in order:&#x27; followed by a sequenced list of telemetry queries.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>synthesizes_available_context</td><td class='rationale'>Integrates topology data with specific entities: &#x27;leaf 0 (node 16)&#x27;, &#x27;one of 4 spines (18–21)&#x27;, &#x27;25 Gbps host link&#x27;, and explicitly rules out: &#x27;asymmetry.present = false, no slow spines flagged ... at the topology layer, the fabric currently looks symmetric&#x27;. Also references the specific IP range &#x27;11.0.0.1 – 11.0.7.1&#x27; for co-tenants on leaf 0.</td></tr></tbody>
+  </table>
+  <div class='judge-overall'><strong>Overall (claude-opus-4-7):</strong> All five criteria pass: the response names multiple hypothesis classes, specifies concrete telemetry, hedges and asks clarifying questions, presents an ordered investigation plan, and integrates specific topology entities (leaf 0/node 16, spines 18-21, asymmetry=false) into the analysis.&quot;</div>
+</section>
+
+  <section class="messages-section">
+    <h2>Messages (6)</h2>
+    <details class='message' open>
+  <summary><strong>1.</strong> User → Agent <span class='label'>help ticket</span></summary>
+  <div class='span-id'>span: <code>8a303618f5e358ea</code></div>
+  <div class='ctx-block'><div class='ctx-label'>system prompt</div><pre class='payload'>You are a network-investigation assistant for an RDMA leaf-spine fabric. Help the user diagnose their issue.</pre></div><div class='ctx-block'><div class='ctx-label'>tools available to agent</div><div class='tools-list'>get_topology</div></div><div class='ctx-block'><div class='ctx-label'>user prompt (help ticket)</div><pre class='payload'>Hey network team — step time on jobs targeting host 11.0.0.1 is up about 1.5x compared to baseline. Started this morning around 09:14 UTC. Can you help figure out what&#x27;s going on?
+</pre></div>
+</details>
+<details class='message'>
+  <summary><strong>2.</strong> Agent → Tool <span class='label'>get_topology</span></summary>
+  <div class='span-id'>span: <code>bd329bb13ca61fd3</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {}
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>3.</strong> Tool ← Agent <span class='label'>get_topology → result</span></summary>
+  <div class='span-id'>span: <code>bd329bb13ca61fd3</code></div>
+  <pre class='payload'>{
+  &quot;output&quot;: {
+    &quot;shape&quot;: &quot;leaf-spine&quot;,
+    &quot;leaves&quot;: 2,
+    &quot;spines&quot;: 4,
+    &quot;hosts_per_leaf&quot;: 8,
+    &quot;total_hosts&quot;: 16,
+    &quot;host_ip_convention&quot;: &quot;Host with substrate id N has IP 11.&lt;(N // 256) % 256&gt;.&lt;N % 256&gt;.1. The fourth octet is always 1 (anchor). The third octet equals N mod 256 (so within a /16 block, the third octet equals the host_id). The second octet is N // 256 (only nonzero for fabrics with more than 256 hosts). Pinned by the substrate&#x27;s node_id_to_ip function in examples/PowerTCP/powertcp-evaluation-burst.cc; same convention across all scenarios.&quot;,
+    &quot;leaf_switches&quot;: [
+      {
+        &quot;index&quot;: 0,
+        &quot;node_id&quot;: 16,
+        &quot;hosts&quot;: [
+          {
+            &quot;id&quot;: 0,
+            &quot;ip&quot;: &quot;11.0.0.1&quot;
+          },
+          {
+            &quot;id&quot;: 1,
+            &quot;ip&quot;: &quot;11.0.1.1&quot;
+          },
+          {
+            &quot;id&quot;: 2,
+            &quot;ip&quot;: &quot;11.0.2.1&quot;
+          },
+          {
+            &quot;id&quot;: 3,
+            &quot;ip&quot;: &quot;11.0.3.1&quot;
+          },
+          {
+            &quot;id&quot;: 4,
+            &quot;ip&quot;: &quot;11.0.4.1&quot;
+          },
+          {
+            &quot;id&quot;: 5,
+            &quot;ip&quot;: &quot;11.0.5.1&quot;
+          },
+          {
+            &quot;id&quot;: 6,
+            &quot;ip&quot;: &quot;11.0.6.1&quot;
+          },
+          {
+            &quot;id&quot;: 7,
+            &quot;ip&quot;: &quot;11.0.7.1&quot;
+          }
+        ]
+      },
+      {
+        &quot;index&quot;: 1,
+        &quot;node_id&quot;: 17,
+        &quot;hosts&quot;: [
+          {
+            &quot;id&quot;: 8,
+            &quot;ip&quot;: &quot;11.0.8.1&quot;
+          },
+          {
+            &quot;id&quot;: 9,
+            &quot;ip&quot;: &quot;11.0.9.1&quot;
+          },
+          {
+            &quot;id&quot;: 10,
+            &quot;ip&quot;: &quot;11.0.10.1&quot;
+          },
+          {
+            &quot;id&quot;: 11,
+            &quot;ip&quot;: &quot;11.0.11.1&quot;
+          },
+          {
+            &quot;id&quot;: 12,
+            &quot;ip&quot;: &quot;11.0.12.1&quot;
+          },
+          {
+            &quot;id&quot;: 13,
+            &quot;ip&quot;: &quot;11.0.13.1&quot;
+          },
+          {
+            &quot;id&quot;: 14,
+            &quot;ip&quot;: &quot;11.0.14.1&quot;
+          },
+          {
+            &quot;id&quot;: 15,
+            &quot;ip&quot;: &quot;11.0.15.1&quot;
+          }
+        ]
+      }
+    ],
+    &quot;spine_switches&quot;: [
+      {
+        &quot;index&quot;: 0,
+        &quot;node_id&quot;: 18
+      },
+      {
+        &quot;index&quot;: 1,
+        &quot;node_id&quot;: 19
+      },
+      {
+        &quot;index&quot;: 2,
+        &quot;node_id&quot;: 20
+      },
+      {
+        &quot;index&quot;: 3,
+        &quot;node_id&quot;: 21
+      }
+    ],
+    &quot;host_link&quot;: {
+      &quot;bps&quot;: 25000000000,
+      &quot;delay&quot;: &quot;1us&quot;
+    },
+    &quot;spine_link&quot;: {
+      &quot;bps&quot;: 100000000000,
+      &quot;delay&quot;: &quot;5us&quot;
+    },
+    &quot;ecmp&quot;: &quot;full-mesh leaf-to-spine&quot;,
+    &quot;asymmetry&quot;: {
+      &quot;present&quot;: false,
+      &quot;slow_spine_indices&quot;: [],
+      &quot;slow_link_bps&quot;: null,
+      &quot;slow_link_delay&quot;: null
+    },
+    &quot;congestion_control&quot;: {
+      &quot;cc_mode&quot;: 3,
+      &quot;name&quot;: &quot;DCQCN&quot;,
+      &quot;qcn_enabled&quot;: true,
+      &quot;buffer_size_mb&quot;: 4
+    }
+  },
+  &quot;source&quot;: &quot;adapter.scenario_topology(&#x27;microburst&#x27;)&quot;,
+  &quot;confidence&quot;: &quot;high&quot;,
+  &quot;staleness_class&quot;: &quot;fresh&quot;
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>4.</strong> Agent ← User <span class='label'>triage response</span></summary>
+  <div class='span-id'>span: <code>7abe8dc459f2e26f</code></div>
+  <pre class='payload'>{
+  &quot;text&quot;: &quot;Here&#x27;s what I can see about the fabric and host 11.0.0.1:\n\n**Host 11.0.0.1 placement**\n- Substrate ID 0, attached to **leaf 0 (node 16)**\n- Host link: 25 Gbps, 1 µs\n- Cross-leaf traffic traverses: leaf 0 → one of 4 spines (18–21) → leaf 1, via full-mesh ECMP, 100 Gbps / 5 µs each\n\n**Congestion control**: DCQCN (cc_mode 3), QCN enabled, 4 MB buffer.\n\n**Asymmetry check**: `asymmetry.present = false`, no slow spines flagged, no degraded link bps/delay reported. So at the topology layer, the fabric currently looks symmetric — no spine or link is being reported as degraded right now.\n\nThat&#x27;s an important data point: a 1.5x step-time regression that started at a specific wall-clock time (09:14 UTC) usually points to one of:\n\n1. **A workload/traffic-pattern change** — another job started colliding on leaf 0&#x27;s uplinks or on 11.0.0.1&#x27;s 25 Gbps host link (incast). With DCQCN this would show up as elevated ECN marks and PFC pause time on leaf 0.\n2. **ECMP hash polarization** — multiple heavy flows landing on the same spine. Topology is symmetric, but ECMP can still imbalance per-flow.\n3. **A degraded component not modeled in `asymmetry`** — e.g., a flapping link, a stuck queue, or a NIC-side issue on 11.0.0.1 itself. The topology tool would not necessarily reflect this.\n4. **Host-local issue on 11.0.0.1** (NIC, PCIe, memory pressure) — fabric-side metrics would look clean.\n\nTo go further I&#x27;d want to look at, in order:\n- Per-spine utilization and ECN/PFC counters on leaf 0&#x27;s uplinks since 09:14.\n- Queue depth and drops on leaf 0&#x27;s downlink to host 0.\n- Whether any other jobs landed on leaf 0 hosts (11.0.0.1 – 11.0.7.1) around 09:14.\n- NIC counters on 11.0.0.1 (CNP received, PFC RX, completion latency).\n\nDo you have access to switch counters or per-flow telemetry I can pull next? If you can tell me which source hosts the affected job runs on, I can also tell you whether the traffic is intra-leaf (no spine involved) or crossing the spines, which narrows the search a lot.&quot;,
+  &quot;model&quot;: &quot;claude-opus-4-7&quot;,
+  &quot;input_tokens&quot;: 2935,
+  &quot;output_tokens&quot;: 949
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>5.</strong> Agent → Judge <span class='label'>evaluate response</span></summary>
+  <div class='span-id'>span: <code>b7c22d7d7e4be15b</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {
+    &quot;judge_model&quot;: &quot;claude-opus-4-7&quot;,
+    &quot;agent_response_length&quot;: 1991,
+    &quot;tool_calls_count&quot;: 1
+  }
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>6.</strong> Judge ← Agent <span class='label'>verdict: PASS</span></summary>
+  <div class='span-id'>span: <code>b7c22d7d7e4be15b</code></div>
+  <pre class='payload'>{
+  &quot;output&quot;: {
+    &quot;overall_pass&quot;: true,
+    &quot;overall_rationale&quot;: &quot;All five criteria pass: the response names multiple hypothesis classes, specifies concrete telemetry, hedges and asks clarifying questions, presents an ordered investigation plan, and integrates specific topology entities (leaf 0/node 16, spines 18-21, asymmetry=false) into the analysis.\&quot;&quot;,
+    &quot;criteria&quot;: [
+      {
+        &quot;name&quot;: &quot;considers_multiple_hypotheses&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Names 4 distinct mechanism classes: &#x27;workload/traffic-pattern change ... incast&#x27;, &#x27;ECMP hash polarization&#x27;, &#x27;degraded component ... flapping link, a stuck queue, or a NIC-side issue&#x27;, and &#x27;Host-local issue on 11.0.0.1 (NIC, PCIe, memory pressure)&#x27;.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;names_telemetry_to_query&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Names specific telemetry: &#x27;Per-spine utilization and ECN/PFC counters on leaf 0&#x27;s uplinks&#x27;, &#x27;Queue depth and drops on leaf 0&#x27;s downlink&#x27;, &#x27;NIC counters on 11.0.0.1 (CNP received, PFC RX, completion latency)&#x27;, plus per-flow telemetry — at least 4 distinct categories.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;acknowledges_unknowns&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Hedges with &#x27;The topology tool would not necessarily reflect this&#x27; and asks clarifying questions: &#x27;Do you have access to switch counters or per-flow telemetry I can pull next?&#x27; and &#x27;if you can tell me which source hosts the affected job runs on&#x27;.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;coherent_investigation_order&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Uses numbered hypothesis list (1-4) and explicit ordering: &#x27;To go further I&#x27;d want to look at, in order:&#x27; followed by a sequenced list of telemetry queries.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;synthesizes_available_context&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Integrates topology data with specific entities: &#x27;leaf 0 (node 16)&#x27;, &#x27;one of 4 spines (18–21)&#x27;, &#x27;25 Gbps host link&#x27;, and explicitly rules out: &#x27;asymmetry.present = false, no slow spines flagged ... at the topology layer, the fabric currently looks symmetric&#x27;. Also references the specific IP range &#x27;11.0.0.1 – 11.0.7.1&#x27; for co-tenants on leaf 0.&quot;
+      }
+    ]
+  },
+  &quot;judge_model&quot;: &quot;claude-opus-4-7&quot;
+}</pre>
+</details>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', sequence: { showSequenceNumbers: true } });
+  </script>
+</body>
+</html>

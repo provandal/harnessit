@@ -268,6 +268,27 @@ def build_trace_view(
                         user_prompt = user_input
                         break
 
+    # Pull system prompt + available tools from the model span's input.
+    # The runner's tracing layer puts these on the model span as
+    # ``input = {"system": ..., "user": ..., "tools": [...]}``. We
+    # surface them on the User -> Agent message payload so a reader
+    # can see the full agent context (not just the user's help-
+    # ticket text). Without this, the harness's tool injection is
+    # invisible in the rendered HTML — the with-tool variant would
+    # look the same as symptom-only on the opening arrow.
+    system_prompt: str | None = None
+    tools_available: list[str] | None = None
+    for s in span_list:
+        if s.name in ("harnessit.naked_model.complete", "harnessit.tool_use.complete"):
+            if isinstance(s.input, dict):
+                sys_val = s.input.get("system")
+                if isinstance(sys_val, str) and sys_val:
+                    system_prompt = sys_val
+                tools_val = s.input.get("tools")
+                if isinstance(tools_val, list) and tools_val:
+                    tools_available = [str(t) for t in tools_val]
+                break
+
     agent_final_response = _extract_text(trace_output)
 
     messages: list[Message] = []
@@ -277,15 +298,23 @@ def build_trace_view(
 
     # Inferred opening message: the user's help ticket lands at the agent.
     # Use the eval-run start_time so this anchors to the run start.
+    # Payload includes the full agent input (user prompt + system
+    # prompt + tools available) so the rendered HTML shows the
+    # complete context the agent received — not just the user text.
     if user_prompt:
         opener_ts = eval_root.start_time if eval_root else timestamp
+        opener_payload: dict[str, Any] = {"user_prompt": user_prompt}
+        if system_prompt is not None:
+            opener_payload["system_prompt"] = system_prompt
+        if tools_available is not None:
+            opener_payload["tools_available"] = tools_available
         messages.append(Message(
             from_lane=Lane.USER,
             to_lane=Lane.AGENT,
             label="help ticket",
             timestamp=opener_ts,
             span_id=eval_root.id if eval_root else None,
-            payload={"text": user_prompt},
+            payload=opener_payload,
         ))
 
     # Walk children of the eval root in start-time order.

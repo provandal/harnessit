@@ -72,22 +72,87 @@ def _render_mermaid_diagram(view: TraceView) -> str:
     return "\n".join(lines)
 
 
+def _render_help_ticket_payload(payload: dict[str, Any]) -> str:
+    """Custom-render the User -> Agent opening message.
+
+    Surfaces the three fields a reader needs to understand the
+    agent's situation: the system prompt, the user prompt (the
+    help-ticket text), and the tools the agent had available.
+    Falls back to the generic JSON dump if the payload doesn't
+    carry these fields (e.g., a future scenario shape we haven't
+    anticipated).
+    """
+    user_prompt = payload.get("user_prompt")
+    system_prompt = payload.get("system_prompt")
+    tools_available = payload.get("tools_available")
+    if user_prompt is None and system_prompt is None and tools_available is None:
+        return _format_payload_block(payload)
+
+    blocks: list[str] = []
+    if system_prompt:
+        blocks.append(
+            "<div class='ctx-block'>"
+            "<div class='ctx-label'>system prompt</div>"
+            f"<pre class='payload'>{_esc(str(system_prompt))}</pre>"
+            "</div>"
+        )
+    if tools_available:
+        tools_text = ", ".join(_esc(str(t)) for t in tools_available)
+        blocks.append(
+            "<div class='ctx-block'>"
+            "<div class='ctx-label'>tools available to agent</div>"
+            f"<div class='tools-list'>{tools_text}</div>"
+            "</div>"
+        )
+    else:
+        blocks.append(
+            "<div class='ctx-block'>"
+            "<div class='ctx-label'>tools available to agent</div>"
+            "<div class='tools-list ctx-empty'>none (naked model)</div>"
+            "</div>"
+        )
+    if user_prompt:
+        blocks.append(
+            "<div class='ctx-block'>"
+            "<div class='ctx-label'>user prompt (help ticket)</div>"
+            f"<pre class='payload'>{_esc(str(user_prompt))}</pre>"
+            "</div>"
+        )
+    return "".join(blocks)
+
+
 def _render_message_detail(idx: int, msg: Message) -> str:
-    """Collapsible detail block for one message."""
+    """Collapsible detail block for one message.
+
+    The User -> Agent opening message gets custom rendering (system
+    prompt + tools available + user prompt as labeled blocks);
+    everything else falls back to the generic JSON-pretty payload
+    block which is fine for tool round-trips, judge verdicts, etc.
+    """
     arrow_glyph = "←" if msg.is_response else "→"
     title = (
         f"<strong>{idx}.</strong> "
         f"{_esc(msg.from_lane.value)} {arrow_glyph} {_esc(msg.to_lane.value)} "
         f"<span class='label'>{_esc(msg.label)}</span>"
     )
-    payload_html = _format_payload_block(msg.payload)
+    is_help_ticket = (
+        msg.from_lane == Lane.USER
+        and msg.to_lane == Lane.AGENT
+        and msg.label == "help ticket"
+    )
+    payload_html = (
+        _render_help_ticket_payload(msg.payload)
+        if is_help_ticket
+        else _format_payload_block(msg.payload)
+    )
     span_link = ""
     if msg.span_id:
         span_link = (
             f"<div class='span-id'>span: <code>{_esc(msg.span_id)}</code></div>"
         )
     return (
-        "<details class='message'>\n"
+        "<details class='message' open>\n" if is_help_ticket else "<details class='message'>\n"
+    ) + (
         f"  <summary>{title}</summary>\n"
         f"  {span_link}\n"
         f"  {payload_html}\n"
@@ -214,7 +279,11 @@ details.message { background: var(--panel-bg); margin: 0.5rem 0; padding: 0.5rem
 details.message summary { cursor: pointer; }
 details.message summary .label { color: var(--accent); }
 .span-id { font-size: 0.75rem; color: var(--muted); margin: 0.25rem 0; }
-.payload { background: #f9fafb; padding: 0.5rem; border-radius: 4px; font-size: 0.825rem; overflow-x: auto; max-height: 24rem; overflow-y: auto; }
+.payload { background: #f9fafb; padding: 0.5rem; border-radius: 4px; font-size: 0.825rem; overflow-x: auto; max-height: 24rem; overflow-y: auto; white-space: pre-wrap; }
+.ctx-block { margin: 0.5rem 0; }
+.ctx-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+.ctx-empty { color: var(--muted); font-style: italic; }
+.tools-list { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; padding: 0.5rem; background: #f9fafb; border-radius: 4px; }
 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; }
 .section-heading { color: var(--muted); font-size: 0.875rem; margin: 1.5rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
 """

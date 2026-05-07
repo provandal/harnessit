@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>HarnessIT trajectory — microburst-symptom-only</title>
+  <style>
+:root {
+  --bg: #fafafa; --fg: #1a1a1a; --accent: #2563eb;
+  --muted: #6b7280; --pass: #15803d; --fail: #b91c1c;
+  --panel-bg: #ffffff; --border: #e5e7eb;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0; padding: 2rem; max-width: 1100px;
+  margin-left: auto; margin-right: auto;
+  background: var(--bg); color: var(--fg); line-height: 1.5;
+}
+h1 { margin: 0 0 0.5rem 0; font-size: 1.5rem; }
+h2 { margin: 1.5rem 0 0.75rem; font-size: 1.15rem; }
+.trace-header { padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.trace-id, .timestamp { color: var(--muted); font-size: 0.875rem; margin: 0.25rem 0; }
+.eval-meta { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.75rem; margin-top: 0.5rem; font-size: 0.875rem; }
+.eval-meta dt { color: var(--muted); }
+.eval-meta dd { margin: 0; }
+.diagram { background: var(--panel-bg); padding: 1rem; border-radius: 6px; border: 1px solid var(--border); margin: 1rem 0; overflow-x: auto; }
+section { background: var(--panel-bg); padding: 1rem 1.5rem; margin: 1rem 0; border-radius: 6px; border: 1px solid var(--border); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { padding: 0.5rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; color: var(--muted); }
+.criterion-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+td.pass { color: var(--pass); font-weight: 600; }
+td.fail { color: var(--fail); font-weight: 600; }
+.rationale { color: var(--fg); }
+.judge-overall { margin-top: 0.75rem; padding: 0.75rem; background: #f3f4f6; border-radius: 4px; font-size: 0.95rem; }
+details.message { background: var(--panel-bg); margin: 0.5rem 0; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; }
+details.message summary { cursor: pointer; }
+details.message summary .label { color: var(--accent); }
+.span-id { font-size: 0.75rem; color: var(--muted); margin: 0.25rem 0; }
+.payload { background: #f9fafb; padding: 0.5rem; border-radius: 4px; font-size: 0.825rem; overflow-x: auto; max-height: 24rem; overflow-y: auto; white-space: pre-wrap; }
+.ctx-block { margin: 0.5rem 0; }
+.ctx-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+.ctx-empty { color: var(--muted); font-style: italic; }
+.tools-list { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; padding: 0.5rem; background: #f9fafb; border-radius: 4px; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; }
+.section-heading { color: var(--muted); font-size: 0.875rem; margin: 1.5rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+</style>
+</head>
+<body>
+  <header class='trace-header'>
+  <h1>HarnessIT trajectory: microburst-symptom-only</h1>
+  <div class='trace-id'>trace: <code>5db68836ac346eeeed9ac2c056528626</code></div>
+  <div class='timestamp'>2026-05-07T17:45:16.130000+00:00</div>
+  <dl class='eval-meta'><dt>scenario_name</dt><dd>microburst-symptom-only</dd><dt>scoring_mode</dt><dd>llm_judge</dd><dt>expected_to_pass</dt><dd>False</dd><dt>target_run_id</dt><dd>microburst-symptom-only-1778175916__target</dd></dl>
+</header>
+
+  <section class="diagram-section">
+    <h2>Sequence diagram</h2>
+    <div class="diagram">
+      <pre class="mermaid">sequenceDiagram
+  participant USER as User
+  participant AGENT as Agent
+  participant JUDGE as Judge
+  USER-&gt;&gt;AGENT: help ticket
+  AGENT--&gt;&gt;USER: triage response
+  AGENT-&gt;&gt;JUDGE: evaluate response
+  JUDGE--&gt;&gt;AGENT: verdict - FAIL</pre>
+    </div>
+  </section>
+
+  <section class='scores-panel'>
+  <h2>Trace-level scores</h2>
+  <table class='scores-table'>
+    <thead><tr><th>Name</th><th>Value</th><th>Comment</th></tr></thead>
+    <tbody><tr><td class='criterion-name'>harnessit.eval.overall_pass</td><td class='fail'>0.0</td><td>Passes considers_multiple_hypotheses, names_telemetry_to_query, acknowledges_unknowns, and coherent_investigation_order, but fails synthesizes_available_context — the response is a well-structured generic playbook that asks for context rather than integrating any concrete fabric facts or reasoning quantitatively about the 1.5x symptom.</td></tr></tbody>
+  </table>
+</section>
+  <section class='judge-panel'>
+  <h2>LLM judge — per-criterion rationale</h2>
+  <table class='judge-table'>
+    <thead><tr><th>Verdict</th><th>Criterion</th><th>Rationale</th></tr></thead>
+    <tbody><tr><td class='pass'>PASS</td><td class='criterion-name'>considers_multiple_hypotheses</td><td class='rationale'>Names multiple distinct mechanism classes: host/NIC issue (&#x27;host/NIC vs. fabric vs. spine issue&#x27;, &#x27;NIC counters&#x27;), PFC (&#x27;PFC pause storms&#x27;), ECN/DCQCN (&#x27;ECN marks&#x27;, &#x27;CNP rx/tx&#x27;), ECMP imbalance (&#x27;ECMP hash distribution toward 11.0.0.1&#x27;s leaf&#x27;), link/optical degradation (&#x27;link flaps or degraded optics&#x27;), and queue saturation (&#x27;queue depth on its uplinks&#x27;).</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>names_telemetry_to_query</td><td class='rationale'>Names specific telemetry: NIC counters (&#x27;rx/tx pause, out-of-sequence, CNP rx/tx, port errors&#x27;), leaf port utilization and PFC pause counters, &#x27;ECN/WRED drops, queue depth on its uplinks&#x27;, &#x27;ECMP hash distribution&#x27;, and link flap/optics state — well over 4 distinct categories with specificity.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>acknowledges_unknowns</td><td class='rationale'>Explicitly asks clarifying questions (&#x27;Is the slowdown only on jobs whose traffic terminates at 11.0.0.1...&#x27;, &#x27;1.5x — is that p50, p99, or average?&#x27;, &#x27;What&#x27;s the leaf 11.0.0.1 is attached to&#x27;) and frames hypotheses as things to distinguish rather than asserting a root cause.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>coherent_investigation_order</td><td class='rationale'>Structured with numbered sections (1. Scope, 2. Baseline, 3. 09:14 trigger, 4. Symptoms) and a separate ordered checklist starting with &#x27;Host NIC counters&#x27;, then &#x27;ToR (leaf)&#x27;, then &#x27;Spine path&#x27;, then &#x27;Recent change log&#x27; — a clear host-outward investigation order.</td></tr><tr><td class='fail'>FAIL</td><td class='criterion-name'>synthesizes_available_context</td><td class='rationale'>The response largely enumerates generic possibilities and asks for context rather than integrating it. It does not reason quantitatively about the 1.5x magnitude, doesn&#x27;t identify which leaf/spine 11.0.0.1 attaches to (in fact asks the user &#x27;What&#x27;s the leaf 11.0.0.1 is attached to&#x27;), and doesn&#x27;t rule out hypotheses based on data — it treats &#x27;1.5x&#x27; as a label. No synthesis move with phrase-level specificity beyond repeating the host IP.</td></tr></tbody>
+  </table>
+  <div class='judge-overall'><strong>Overall (claude-opus-4-7):</strong> Passes considers_multiple_hypotheses, names_telemetry_to_query, acknowledges_unknowns, and coherent_investigation_order, but fails synthesizes_available_context — the response is a well-structured generic playbook that asks for context rather than integrating any concrete fabric facts or reasoning quantitatively about the 1.5x symptom.</div>
+</section>
+
+  <section class="messages-section">
+    <h2>Messages (4)</h2>
+    <details class='message' open>
+  <summary><strong>1.</strong> User → Agent <span class='label'>help ticket</span></summary>
+  <div class='span-id'>span: <code>d160009bdf537881</code></div>
+  <div class='ctx-block'><div class='ctx-label'>system prompt</div><pre class='payload'>You are a network-investigation assistant for an RDMA leaf-spine fabric. Help the user diagnose their issue.</pre></div><div class='ctx-block'><div class='ctx-label'>tools available to agent</div><div class='tools-list ctx-empty'>none (naked model)</div></div><div class='ctx-block'><div class='ctx-label'>user prompt (help ticket)</div><pre class='payload'>Hey network team — step time on jobs targeting host 11.0.0.1 is up about 1.5x compared to baseline. Started this morning around 09:14 UTC. Can you help figure out what&#x27;s going on?
+</pre></div>
+</details>
+<details class='message'>
+  <summary><strong>2.</strong> Agent ← User <span class='label'>triage response</span></summary>
+  <div class='span-id'>span: <code>cbf4741697d3ed18</code></div>
+  <pre class='payload'>{
+  &quot;text&quot;: &quot;Happy to help dig in. Before I start pulling data, a few quick clarifications so I scope this right:\n\n1. **Scope of impact**\n   - Is the slowdown only on jobs whose traffic terminates at 11.0.0.1, or are other hosts also seeing elevated step times? (helps distinguish host/NIC vs. fabric vs. spine issue)\n   - Single job or multiple jobs hitting 11.0.0.1?\n\n2. **Baseline reference**\n   - What&#x27;s the baseline step time and the current step time? \&quot;1.5x\&quot; — is that p50, p99, or average?\n   - Is this a recurring workload (so we have a clean before/after) or a new run?\n\n3. **09:14 UTC trigger**\n   - Anything known to have changed around then? (config push, job launch, link flap, maintenance, firmware)\n   - Or did it just start showing up in telemetry?\n\n4. **Symptoms beyond step time**\n   - Any RDMA retransmits, PFC pause storms, or ECN marks reported on the NIC counters for 11.0.0.1?\n   - Collective stalls (allreduce/allgather) or point-to-point sends slow?\n\nIn parallel, I&#x27;ll start with these checks — let me know if you want me to focus elsewhere:\n\n- **Host 11.0.0.1 NIC counters**: rx/tx pause, out-of-sequence, CNP rx/tx, port errors\n- **ToR (leaf) attached to 11.0.0.1**: port utilization, PFC pause counters, ECN/WRED drops, queue depth on its uplinks\n- **Spine path**: ECMP hash distribution toward 11.0.0.1&#x27;s leaf, any link flaps or degraded optics since ~09:00 UTC\n- **Recent change log** for the leaf and spines in that pod\n\nWhat&#x27;s the leaf 11.0.0.1 is attached to, and do you have the job ID / collective pattern handy?&quot;,
+  &quot;model&quot;: &quot;claude-opus-4-7&quot;,
+  &quot;input_tokens&quot;: 118,
+  &quot;output_tokens&quot;: 632
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>3.</strong> Agent → Judge <span class='label'>evaluate response</span></summary>
+  <div class='span-id'>span: <code>04f2ad9abcbe6bb7</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {
+    &quot;judge_model&quot;: &quot;claude-opus-4-7&quot;,
+    &quot;agent_response_length&quot;: 1534,
+    &quot;tool_calls_count&quot;: 0
+  }
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>4.</strong> Judge ← Agent <span class='label'>verdict: FAIL</span></summary>
+  <div class='span-id'>span: <code>04f2ad9abcbe6bb7</code></div>
+  <pre class='payload'>{
+  &quot;output&quot;: {
+    &quot;overall_pass&quot;: false,
+    &quot;overall_rationale&quot;: &quot;Passes considers_multiple_hypotheses, names_telemetry_to_query, acknowledges_unknowns, and coherent_investigation_order, but fails synthesizes_available_context — the response is a well-structured generic playbook that asks for context rather than integrating any concrete fabric facts or reasoning quantitatively about the 1.5x symptom.&quot;,
+    &quot;criteria&quot;: [
+      {
+        &quot;name&quot;: &quot;considers_multiple_hypotheses&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Names multiple distinct mechanism classes: host/NIC issue (&#x27;host/NIC vs. fabric vs. spine issue&#x27;, &#x27;NIC counters&#x27;), PFC (&#x27;PFC pause storms&#x27;), ECN/DCQCN (&#x27;ECN marks&#x27;, &#x27;CNP rx/tx&#x27;), ECMP imbalance (&#x27;ECMP hash distribution toward 11.0.0.1&#x27;s leaf&#x27;), link/optical degradation (&#x27;link flaps or degraded optics&#x27;), and queue saturation (&#x27;queue depth on its uplinks&#x27;).&quot;
+      },
+      {
+        &quot;name&quot;: &quot;names_telemetry_to_query&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Names specific telemetry: NIC counters (&#x27;rx/tx pause, out-of-sequence, CNP rx/tx, port errors&#x27;), leaf port utilization and PFC pause counters, &#x27;ECN/WRED drops, queue depth on its uplinks&#x27;, &#x27;ECMP hash distribution&#x27;, and link flap/optics state — well over 4 distinct categories with specificity.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;acknowledges_unknowns&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Explicitly asks clarifying questions (&#x27;Is the slowdown only on jobs whose traffic terminates at 11.0.0.1...&#x27;, &#x27;1.5x — is that p50, p99, or average?&#x27;, &#x27;What&#x27;s the leaf 11.0.0.1 is attached to&#x27;) and frames hypotheses as things to distinguish rather than asserting a root cause.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;coherent_investigation_order&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Structured with numbered sections (1. Scope, 2. Baseline, 3. 09:14 trigger, 4. Symptoms) and a separate ordered checklist starting with &#x27;Host NIC counters&#x27;, then &#x27;ToR (leaf)&#x27;, then &#x27;Spine path&#x27;, then &#x27;Recent change log&#x27; — a clear host-outward investigation order.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;synthesizes_available_context&quot;,
+        &quot;passed&quot;: false,
+        &quot;rationale&quot;: &quot;The response largely enumerates generic possibilities and asks for context rather than integrating it. It does not reason quantitatively about the 1.5x magnitude, doesn&#x27;t identify which leaf/spine 11.0.0.1 attaches to (in fact asks the user &#x27;What&#x27;s the leaf 11.0.0.1 is attached to&#x27;), and doesn&#x27;t rule out hypotheses based on data — it treats &#x27;1.5x&#x27; as a label. No synthesis move with phrase-level specificity beyond repeating the host IP.&quot;
+      }
+    ]
+  },
+  &quot;judge_model&quot;: &quot;claude-opus-4-7&quot;
+}</pre>
+</details>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', sequence: { showSequenceNumbers: true } });
+  </script>
+</body>
+</html>

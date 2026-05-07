@@ -138,7 +138,83 @@ def test_user_prompt_extracted_from_trace_input():
         spans=[eval_root, model],
     )
     assert view.user_prompt == "actual user ticket text here"
-    assert view.messages[0].payload["text"] == "actual user ticket text here"
+    assert view.messages[0].payload["user_prompt"] == "actual user ticket text here"
+
+
+def test_help_ticket_payload_includes_system_prompt_and_user_prompt():
+    """The User -> Agent message must surface the full agent context
+    — system prompt and user prompt both — so the rendered HTML
+    shows what the agent actually received from the harness, not
+    just the help-ticket text."""
+    eval_root = _span(id="root", name="harnessit.eval.run", start=0, end=5)
+    model = _span(
+        id="m1", name="harnessit.naked_model.complete",
+        parent_id="root", start=0.5, end=4,
+        input={
+            "system": "You are a network-investigation assistant for an RDMA fabric.",
+            "user": "host 11.0.0.1 slow",
+        },
+        output="ok",
+    )
+    view = build_trace_view(
+        trace_id="t", trace_name="x", timestamp=_T0,
+        trace_input={"scenario": "x", "target_scenario": "y"},
+        trace_output="ok",
+        trace_metadata=None,
+        spans=[eval_root, model],
+    )
+    payload = view.messages[0].payload
+    assert payload["user_prompt"] == "host 11.0.0.1 slow"
+    assert "system_prompt" in payload
+    assert "network-investigation assistant" in payload["system_prompt"]
+
+
+def test_help_ticket_payload_includes_tools_available_for_tool_use():
+    """For tool-use scenarios, the User -> Agent payload must list
+    the tools the agent had access to. Without this, the rendered
+    HTML can't distinguish a with-tool variant from a naked variant
+    on the opening arrow alone."""
+    eval_root = _span(id="root", name="harnessit.eval.run", start=0, end=10)
+    model = _span(
+        id="m1", name="harnessit.tool_use.complete",
+        parent_id="root", start=0.5, end=8,
+        input={
+            "system": "you are an SRE",
+            "user": "host slow",
+            "tools": ["get_topology"],
+        },
+        output={"text": "leaf 0 bottleneck"},
+    )
+    view = build_trace_view(
+        trace_id="t", trace_name="x", timestamp=_T0,
+        trace_input={"scenario": "x", "target_scenario": "y"},
+        trace_output="leaf 0 bottleneck",
+        trace_metadata=None,
+        spans=[eval_root, model],
+    )
+    payload = view.messages[0].payload
+    assert payload["tools_available"] == ["get_topology"]
+
+
+def test_help_ticket_payload_omits_tools_when_naked_model():
+    """Naked-model traces must NOT add a ``tools_available`` field
+    (an empty list would be misleading; absence of the field is
+    correct). Lets the renderer suppress the tools-row cleanly."""
+    eval_root = _span(id="root", name="harnessit.eval.run", start=0, end=5)
+    model = _span(
+        id="m1", name="harnessit.naked_model.complete",
+        parent_id="root", start=0.5, end=4,
+        input={"system": "sys", "user": "u"},
+        output="ok",
+    )
+    view = build_trace_view(
+        trace_id="t", trace_name="x", timestamp=_T0,
+        trace_input={"scenario": "x", "target_scenario": "y"},
+        trace_output="ok",
+        trace_metadata=None,
+        spans=[eval_root, model],
+    )
+    assert "tools_available" not in view.messages[0].payload
 
 
 def test_user_prompt_extracted_from_dict_input_with_user_field():
@@ -438,7 +514,7 @@ def test_user_prompt_falls_back_to_model_span_user_input():
         spans=[eval_root, model],
     )
     assert view.user_prompt == "step time on host 11.0.0.1 up 1.5x"
-    assert view.messages[0].payload["text"] == "step time on host 11.0.0.1 up 1.5x"
+    assert view.messages[0].payload["user_prompt"] == "step time on host 11.0.0.1 up 1.5x"
 
 
 def test_eval_root_metadata_does_not_overwrite_trace_metadata():

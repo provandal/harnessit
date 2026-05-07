@@ -238,6 +238,89 @@ def test_render_includes_eval_metadata_keys():
     assert "abc-target" in html
 
 
+# ---------- help-ticket payload custom rendering ----------
+
+def test_help_ticket_renders_system_prompt_and_user_prompt_separately():
+    """The User -> Agent message gets custom rendering with labeled
+    blocks for system_prompt / tools_available / user_prompt — so a
+    reader can see the full agent context at a glance, not just a
+    generic JSON dump."""
+    msgs = [
+        Message(
+            from_lane=Lane.USER, to_lane=Lane.AGENT,
+            label="help ticket", timestamp=_T0,
+            payload={
+                "user_prompt": "step time on host 11.0.0.1 up 1.5x",
+                "system_prompt": "You are a network-investigation assistant",
+                "tools_available": ["get_topology"],
+            },
+        ),
+    ]
+    html = render_trace_html(_make_view(messages=msgs))
+    # All three context blocks should render as labeled sections
+    assert "system prompt" in html
+    assert "tools available to agent" in html
+    assert "user prompt (help ticket)" in html
+    # Content should appear
+    assert "network-investigation assistant" in html
+    assert "step time on host 11.0.0.1 up 1.5x" in html
+    assert "get_topology" in html
+
+
+def test_help_ticket_with_no_tools_renders_naked_model_marker():
+    """When the agent had no tools, the rendered HTML must say so
+    explicitly — otherwise the reader can't distinguish a naked-
+    model run from one where the tool field was missing from the
+    trace data."""
+    msgs = [
+        Message(
+            from_lane=Lane.USER, to_lane=Lane.AGENT,
+            label="help ticket", timestamp=_T0,
+            payload={
+                "user_prompt": "u",
+                "system_prompt": "s",
+                # NO tools_available key — naked model
+            },
+        ),
+    ]
+    html = render_trace_html(_make_view(messages=msgs))
+    assert "tools available to agent" in html
+    assert "none (naked model)" in html
+
+
+def test_help_ticket_block_open_by_default():
+    """The opening User -> Agent message should be expanded by
+    default so a reader sees the agent context immediately on
+    page load. Other messages are collapsed."""
+    html = render_trace_html(_make_view())
+    # The first <details> should have ``open``; the second shouldn't
+    first_details = html.find("<details")
+    assert first_details != -1
+    first_close = html.find(">", first_details)
+    assert "open" in html[first_details:first_close + 1], (
+        "help-ticket details block should be open by default"
+    )
+
+
+def test_non_help_ticket_messages_use_generic_json_payload():
+    """Tool round-trips, judge verdicts, etc. should still render
+    via the generic JSON pretty-printer — no custom code paths."""
+    msgs = [
+        Message(
+            from_lane=Lane.AGENT, to_lane=Lane.TOOL,
+            label="get_topology", timestamp=_T0,
+            payload={"input": {"hint": "fabric"}},
+        ),
+    ]
+    html = render_trace_html(_make_view(messages=msgs))
+    # Generic block: payload appears as JSON in <pre class='payload'>
+    assert "<pre class='payload'>" in html
+    # No ctx-block elements (the .ctx-label CSS rule lives in <style>
+    # and is always present; we check for the actual class usage).
+    assert "<div class='ctx-label'>" not in html
+    assert "<div class='ctx-block'>" not in html
+
+
 # ---------- end-to-end smoke ----------
 
 def test_render_full_trace_view_produces_html_under_size_limit():
