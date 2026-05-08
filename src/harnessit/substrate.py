@@ -171,6 +171,37 @@ class DoppelgangerClient:
         )
         return envelope["data"]
 
+    async def get_fabric_counters(
+        self,
+        name: str,
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Run a scenario and return per-port PFC + ECN-CN counter records.
+
+        Each port record carries both counter classes side-by-side; zero
+        counts surface as ``0``, never absent. ``data.totals`` holds the
+        sum across all ports; ``data.ports`` is the per-(node_id, if_index)
+        detail. Splitting PFC and ECN across separate calls would let a
+        caller see only one class — the asymmetry diagnostic depends on
+        the agent always seeing both.
+        """
+        args: dict[str, Any] = {"name": name}
+        if run_id is not None:
+            args["run_id"] = run_id
+        envelope = await self._call("get_fabric_counters", args)
+        return envelope["data"]
+
+    async def get_fabric_counters_envelope(
+        self,
+        name: str,
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Same as ``get_fabric_counters`` but returns the full envelope."""
+        args: dict[str, Any] = {"name": name}
+        if run_id is not None:
+            args["run_id"] = run_id
+        return await self._call("get_fabric_counters", args)
+
     async def _call(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         result = await self._session.call_tool(tool_name, arguments=arguments)
         if getattr(result, "isError", False):

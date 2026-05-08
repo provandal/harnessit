@@ -110,13 +110,60 @@ python -m harnessit.viewer <trace_id_from_output> --output trace.html
 
 ## Trace IDs
 
-Pinned for reproducibility. All in the harnessit Cloud Langfuse project.
+Pinned for reproducibility. Stage 3 traces live in the Cloud Langfuse
+project; the Stage 5a trace lives on the self-hosted Langfuse stack.
 
-| Variant | Trace ID |
-|---|---|
-| symptom-only | `5db68836ac346eeeed9ac2c056528626` |
-| with-topology | `bf204faa2834c54c5eef6cc207f72379` |
-| with-topology-tool | `8c4399b12477966d8ca0ad3fb1a1323d` |
+| Variant | Trace ID | Backend |
+|---|---|---|
+| symptom-only | `5db68836ac346eeeed9ac2c056528626` | Cloud |
+| with-topology | `bf204faa2834c54c5eef6cc207f72379` | Cloud |
+| with-topology-tool | `8c4399b12477966d8ca0ad3fb1a1323d` | Cloud |
+| pfc-storm-with-counters-tool | `668a11072f2a9d51814ce55841fca6ef` | Self-hosted |
+
+## Stage 5a Closing Test (2026-05-08)
+
+[`pfc-storm-with-counters-tool.html`](pfc-storm-with-counters-tool.html)
+is the closing-test artifact for **Stage 5a (counters tool)**. The
+underlying fault is `pfc_storm(ecn_misconfigured=True)` — KMIN raised
+above buffer capacity so DCQCN runs blind, queues build past PFC
+headroom, pause frames fire while ECN-CN counters stay at zero. The
+agent has both `get_topology` and `get_fabric_counters` available but
+no skill loaded.
+
+**Surprise.** Naked Opus 4.7 with both tools nailed the diagnosis
+without any skill: it called the tools, observed the PFC/ECN
+asymmetry directly from per-port records ("8,288 pauses and 0 marks"),
+proposed the correct root-cause class (ECN/WRED threshold raised
+above PFC xoff, or marking disabled on the queue), localized leaf 0
+as the storm source, and outlined a verification rollback plan.
+**The asymmetry-recognition is already in the model.**
+
+The LLM judge still verdicts FAIL — but on different criteria than
+the diagnosis itself: the agent fails on hypothesis breadth (locks
+in on "ECN misconfig" without weighing incast, ECMP, host-side, or
+link-degradation alternatives) and on acknowledging unknowns
+(opens with "Found it." — no hedging, no clarifying questions, no
+named data gaps). It passes on telemetry specificity, investigation
+ordering, and context synthesis.
+
+The implication for the upcoming first skill (Stage 5b) is sharper
+than the original framing: the skill cannot be "teach the agent to
+read PFC + ECN-CN asymmetry" — Opus 4.7 already does that. The
+useful skill is *epistemic discipline*: enumerate alternative
+hypotheses, name telemetry breadth, hedge confidently, propose
+falsification. That's procedural knowledge the model benefits from
+even though it has the domain-specific recognition.
+
+**Caveat: leak vector still present.** The closing-test fabric is
+4 leaves × 1 spine × 4 hosts/leaf with only the storm running. The
+counter payload contains 2 active ports of activity — no background
+traffic, no production-shaped baseline. A more realistic test
+(in-progress, "Stage 5a-realistic") will add background flows and
+expand the counter set (rx/tx bytes, drops, queue depth, etc.) so
+the asymmetry is *relative* rather than *absolute*. The current
+closing-test artifact is honest about this constraint; the next
+iteration will check whether the diagnosis holds under
+production-shaped complexity.
 
 ## File Sizes
 

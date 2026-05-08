@@ -30,6 +30,7 @@ from harnessit.scenarios import (
     microburst_symptom_only,
     microburst_with_topology,
     microburst_with_topology_tool,
+    pfc_storm_with_counters_tool,
 )
 from harnessit.substrate import DoppelgangerClient
 from harnessit.tracing import flush_langfuse, init_langfuse
@@ -38,6 +39,7 @@ SCENARIO_FACTORIES = {
     "microburst-symptom-only": microburst_symptom_only,
     "microburst-with-topology": microburst_with_topology,
     "microburst-with-topology-tool": microburst_with_topology_tool,
+    "pfc-storm-with-counters-tool": pfc_storm_with_counters_tool,
 }
 DEFAULT_SCENARIO = "microburst-symptom-only"
 

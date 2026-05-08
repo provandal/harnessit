@@ -11,7 +11,12 @@ from typing import Any
 
 import pytest
 
-from harnessit.tools import GET_TOPOLOGY_SCHEMA, ToolError, Tools
+from harnessit.tools import (
+    GET_FABRIC_COUNTERS_SCHEMA,
+    GET_TOPOLOGY_SCHEMA,
+    ToolError,
+    Tools,
+)
 
 
 class _StubSubstrate:
@@ -34,6 +39,13 @@ class _StubSubstrate:
         envelope, self._next_envelope = self._next_envelope, None
         return envelope
 
+    async def get_fabric_counters_envelope(self, name: str) -> dict[str, Any]:
+        self.calls.append(("get_fabric_counters_envelope", {"name": name}))
+        if self._next_envelope is None:
+            raise AssertionError("test forgot to stage an envelope")
+        envelope, self._next_envelope = self._next_envelope, None
+        return envelope
+
 
 # --------------------------------------------------------------- schema
 
@@ -47,10 +59,30 @@ def test_get_topology_schema_takes_no_args():
     assert schema["required"] == []
 
 
-def test_tools_exposes_get_topology_in_schemas():
+def test_tools_exposes_both_schemas():
     tools = Tools(substrate=_StubSubstrate(), scenario_name="microburst")
     names = [s["name"] for s in tools.schemas]
-    assert names == ["get_topology"]
+    assert "get_topology" in names
+    assert "get_fabric_counters" in names
+
+
+def test_get_fabric_counters_schema_takes_no_args():
+    """Same agent-visible contract as get_topology: no args, harness binds
+    the scenario name internally."""
+    assert GET_FABRIC_COUNTERS_SCHEMA["name"] == "get_fabric_counters"
+    schema = GET_FABRIC_COUNTERS_SCHEMA["input_schema"]
+    assert schema["type"] == "object"
+    assert schema["properties"] == {}
+    assert schema["required"] == []
+
+
+def test_get_fabric_counters_schema_describes_both_counter_classes():
+    """Constraint memory: the schema description must signal that both
+    PFC and ECN-CN counters come back together — splitting the
+    description across separate tools would re-leak the answer key."""
+    description = GET_FABRIC_COUNTERS_SCHEMA["description"].lower()
+    assert "pfc" in description
+    assert "ecn" in description
 
 
 # ------------------------------------------------------------ execute
@@ -115,6 +147,64 @@ def test_tool_error_to_payload_shape():
 
 
 # ---------------------------------------------------- OTel span emission
+
+@pytest.mark.asyncio
+async def test_execute_get_fabric_counters_forwards_bound_scenario_name(exporter):
+    substrate = _StubSubstrate()
+    substrate.stage({
+        "data": {
+            "scenario": "pfc-storm",
+            "ports": [
+                {
+                    "node_id": 16, "node_type": 1, "if_index": 1,
+                    "pfc_pause_sent": 12, "pfc_pause_rcvd": 0,
+                    "pfc_resume_sent": 12, "pfc_resume_rcvd": 0,
+                    "ecn_marks_sent": 0,
+                }
+            ],
+        },
+        "source": "driver.run_scenario('pfc-storm')+counters_aggregate",
+        "observed_at_ns": None,
+        "confidence": "high",
+        "staleness_class": "fresh",
+    })
+    tools = Tools(substrate=substrate, scenario_name="pfc-storm")
+    result = await tools.execute("get_fabric_counters", {})
+
+    # No fabric-wide totals row (Stage 5a closing-test finding 2026-05-08:
+    # pre-aggregating totals leaked the asymmetry diagnostic).
+    assert "totals" not in result
+    # Asymmetry preserved: every port record carries both classes
+    for rec in result["ports"]:
+        assert "pfc_pause_sent" in rec
+        assert "ecn_marks_sent" in rec
+    assert substrate.calls == [
+        ("get_fabric_counters_envelope", {"name": "pfc-storm"})
+    ]
+
+
+@pytest.mark.asyncio
+async def test_get_fabric_counters_emits_span_under_harnessit_tools_namespace(exporter):
+    substrate = _StubSubstrate()
+    substrate.stage({
+        "data": {"ports": []},
+        "source": "driver.run_scenario('pfc-storm')+counters_aggregate",
+        "observed_at_ns": None,
+        "confidence": "high",
+        "staleness_class": "fresh",
+    })
+    tools = Tools(substrate=substrate, scenario_name="pfc-storm")
+    await tools.execute("get_fabric_counters", {})
+
+    from langfuse import get_client
+    get_client().flush()
+    spans = exporter.get_finished_spans()
+    matching = [s for s in spans if s.name == "harnessit.tools.get_fabric_counters"]
+    assert len(matching) == 1, (
+        f"expected one harnessit.tools.get_fabric_counters span, "
+        f"got {[s.name for s in spans]}"
+    )
+
 
 @pytest.mark.asyncio
 async def test_get_topology_emits_span_under_harnessit_tools_namespace(exporter):

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>HarnessIT trajectory — pfc-storm-with-counters-tool</title>
+  <style>
+:root {
+  --bg: #fafafa; --fg: #1a1a1a; --accent: #2563eb;
+  --muted: #6b7280; --pass: #15803d; --fail: #b91c1c;
+  --panel-bg: #ffffff; --border: #e5e7eb;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0; padding: 2rem; max-width: 1100px;
+  margin-left: auto; margin-right: auto;
+  background: var(--bg); color: var(--fg); line-height: 1.5;
+}
+h1 { margin: 0 0 0.5rem 0; font-size: 1.5rem; }
+h2 { margin: 1.5rem 0 0.75rem; font-size: 1.15rem; }
+.trace-header { padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.trace-id, .timestamp { color: var(--muted); font-size: 0.875rem; margin: 0.25rem 0; }
+.eval-meta { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.75rem; margin-top: 0.5rem; font-size: 0.875rem; }
+.eval-meta dt { color: var(--muted); }
+.eval-meta dd { margin: 0; }
+.diagram { background: var(--panel-bg); padding: 1rem; border-radius: 6px; border: 1px solid var(--border); margin: 1rem 0; overflow-x: auto; }
+section { background: var(--panel-bg); padding: 1rem 1.5rem; margin: 1rem 0; border-radius: 6px; border: 1px solid var(--border); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { padding: 0.5rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; color: var(--muted); }
+.criterion-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+td.pass { color: var(--pass); font-weight: 600; }
+td.fail { color: var(--fail); font-weight: 600; }
+.rationale { color: var(--fg); }
+.judge-overall { margin-top: 0.75rem; padding: 0.75rem; background: #f3f4f6; border-radius: 4px; font-size: 0.95rem; }
+details.message { background: var(--panel-bg); margin: 0.5rem 0; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; }
+details.message summary { cursor: pointer; }
+details.message summary .label { color: var(--accent); }
+.span-id { font-size: 0.75rem; color: var(--muted); margin: 0.25rem 0; }
+.payload { background: #f9fafb; padding: 0.5rem; border-radius: 4px; font-size: 0.825rem; overflow-x: auto; max-height: 24rem; overflow-y: auto; white-space: pre-wrap; }
+.ctx-block { margin: 0.5rem 0; }
+.ctx-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+.ctx-empty { color: var(--muted); font-style: italic; }
+.tools-list { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; padding: 0.5rem; background: #f9fafb; border-radius: 4px; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; }
+.section-heading { color: var(--muted); font-size: 0.875rem; margin: 1.5rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+</style>
+</head>
+<body>
+  <header class='trace-header'>
+  <h1>HarnessIT trajectory: pfc-storm-with-counters-tool</h1>
+  <div class='trace-id'>trace: <code>668a11072f2a9d51814ce55841fca6ef</code></div>
+  <div class='timestamp'>2026-05-08T13:17:30.104000+00:00</div>
+  <dl class='eval-meta'><dt>scenario_name</dt><dd>pfc-storm-with-counters-tool</dd><dt>scoring_mode</dt><dd>llm_judge</dd><dt>expected_to_pass</dt><dd>False</dd><dt>target_run_id</dt><dd>pfc-storm-with-counters-tool-1778246167__target</dd></dl>
+</header>
+
+  <section class="diagram-section">
+    <h2>Sequence diagram</h2>
+    <div class="diagram">
+      <pre class="mermaid">sequenceDiagram
+  participant USER as User
+  participant AGENT as Agent
+  participant TOOL as Tool
+  participant JUDGE as Judge
+  USER-&gt;&gt;AGENT: help ticket
+  AGENT-&gt;&gt;TOOL: get_topology
+  TOOL--&gt;&gt;AGENT: get_topology → result
+  AGENT-&gt;&gt;TOOL: get_fabric_counters
+  TOOL--&gt;&gt;AGENT: get_fabric_counters → result
+  AGENT--&gt;&gt;USER: triage response
+  AGENT-&gt;&gt;JUDGE: evaluate response
+  JUDGE--&gt;&gt;AGENT: verdict - FAIL</pre>
+    </div>
+  </section>
+
+  <section class='scores-panel'>
+  <h2>Trace-level scores</h2>
+  <table class='scores-table'>
+    <thead><tr><th>Name</th><th>Value</th><th>Comment</th></tr></thead>
+    <tbody><tr><td class='criterion-name'>harnessit.eval.overall_pass</td><td class='fail'>0.0</td><td>Passes on telemetry specificity, ordered investigation, and strong context synthesis (concrete node IDs and quantitative reasoning). Fails on hypothesis breadth (single-explanation lock-in with &#x27;Found it&#x27;) and acknowledging unknowns (no hedging or clarifying questions).&quot;</td></tr></tbody>
+  </table>
+</section>
+  <section class='judge-panel'>
+  <h2>LLM judge — per-criterion rationale</h2>
+  <table class='judge-table'>
+    <thead><tr><th>Verdict</th><th>Criterion</th><th>Rationale</th></tr></thead>
+    <tbody><tr><td class='fail'>FAIL</td><td class='criterion-name'>considers_multiple_hypotheses</td><td class='rationale'>The response locks in immediately on a single explanation: &#x27;Found it. This is a classic PFC storm with ECN effectively disabled.&#x27; While it lists three sub-variants of the QoS misconfiguration (ECN threshold raised, PFC xoff lowered, buffer/headroom reallocation), these are all flavors of the same root cause class. It does not weigh distinct hypothesis classes like incast/microburst, ECMP imbalance, host/NIC issues, or link degradation.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>names_telemetry_to_query</td><td class='rationale'>Names multiple specific telemetry sources: &#x27;pfc_pause_sent&#x27;, &#x27;pfc_pause_rcvd&#x27;, &#x27;ecn_marks_sent&#x27;, &#x27;ECN/WRED config&#x27;, &#x27;PFC xoff threshold&#x27;, queue depth/headroom, and proposes comparing &#x27;running QoS profile on leaf 0 against a known-good leaf&#x27;. Four+ distinct categories with enough specificity to query.</td></tr><tr><td class='fail'>FAIL</td><td class='criterion-name'>acknowledges_unknowns</td><td class='rationale'>The response opens with &#x27;Found it&#x27; and asserts a single root cause confidently. While it offers three sub-variants of the misconfiguration, there&#x27;s no hedging language about the overall diagnosis, no clarifying questions about scope, and no acknowledgment of data gaps (e.g., it doesn&#x27;t note that it lacks per-flow FCT data or host-side counters).</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>coherent_investigation_order</td><td class='rationale'>The &#x27;What I&#x27;d do next&#x27; section is a numbered 1-4 list with clear ordering: check ECN/WRED config first, then compare against known-good, then mitigation, then re-verify. This is a clear ordered investigation plan.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>synthesizes_available_context</td><td class='rationale'>Strong synthesis with specific entities: &#x27;Leaf 0 (node 16), if 5 → spine&#x27;, &#x27;Spine 0 (node 20)&#x27;, &#x27;hosts 0–3, the bottom rack in 11.0.0.0/22&#x27;. Quantitative reasoning on &#x27;8,288 pauses and 0 marks&#x27; and explicitly ties &#x27;bottom-pod racks hit hardest&#x27; to leaf 0 being the storm source. Also rules out structural causes: &#x27;No path asymmetry. So the fabric design is fine.&#x27;</td></tr></tbody>
+  </table>
+  <div class='judge-overall'><strong>Overall (claude-opus-4-7):</strong> Passes on telemetry specificity, ordered investigation, and strong context synthesis (concrete node IDs and quantitative reasoning). Fails on hypothesis breadth (single-explanation lock-in with &#x27;Found it&#x27;) and acknowledging unknowns (no hedging or clarifying questions).&quot;</div>
+</section>
+
+  <section class="messages-section">
+    <h2>Messages (8)</h2>
+    <details class='message' open>
+  <summary><strong>1.</strong> User → Agent <span class='label'>help ticket</span></summary>
+  <div class='span-id'>span: <code>d9c529df349d6506</code></div>
+  <div class='ctx-block'><div class='ctx-label'>system prompt</div><pre class='payload'>You are a network-investigation assistant for an RDMA leaf-spine fabric. Help the user diagnose their issue.</pre></div><div class='ctx-block'><div class='ctx-label'>tools available to agent</div><div class='tools-list'>get_topology, get_fabric_counters</div></div><div class='ctx-block'><div class='ctx-label'>user prompt (help ticket)</div><pre class='payload'>Hey network team — RDMA training jobs are seeing throughput collapse and a bunch of incomplete iterations on the AI cluster. Started early this morning, right after the network team rolled out the new buffer/QoS settings on the leaf switches overnight. Bottom-pod racks are hit hardest. Can you help figure out what broke?
+</pre></div>
+</details>
+<details class='message'>
+  <summary><strong>2.</strong> Agent → Tool <span class='label'>get_topology</span></summary>
+  <div class='span-id'>span: <code>e9698c330d4902c5</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {}
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>3.</strong> Tool ← Agent <span class='label'>get_topology → result</span></summary>
+  <div class='span-id'>span: <code>e9698c330d4902c5</code></div>
+  <pre class='payload'>{
+  &quot;output&quot;: {
+    &quot;shape&quot;: &quot;leaf-spine&quot;,
+    &quot;leaves&quot;: 4,
+    &quot;spines&quot;: 1,
+    &quot;hosts_per_leaf&quot;: 4,
+    &quot;total_hosts&quot;: 16,
+    &quot;host_ip_convention&quot;: &quot;Host with substrate id N has IP 11.&lt;(N // 256) % 256&gt;.&lt;N % 256&gt;.1. The fourth octet is always 1 (anchor). The third octet equals N mod 256 (so within a /16 block, the third octet equals the host_id). The second octet is N // 256 (only nonzero for fabrics with more than 256 hosts). Pinned by the substrate&#x27;s node_id_to_ip function in examples/PowerTCP/powertcp-evaluation-burst.cc; same convention across all scenarios.&quot;,
+    &quot;leaf_switches&quot;: [
+      {
+        &quot;index&quot;: 0,
+        &quot;node_id&quot;: 16,
+        &quot;hosts&quot;: [
+          {
+            &quot;id&quot;: 0,
+            &quot;ip&quot;: &quot;11.0.0.1&quot;
+          },
+          {
+            &quot;id&quot;: 1,
+            &quot;ip&quot;: &quot;11.0.1.1&quot;
+          },
+          {
+            &quot;id&quot;: 2,
+            &quot;ip&quot;: &quot;11.0.2.1&quot;
+          },
+          {
+            &quot;id&quot;: 3,
+            &quot;ip&quot;: &quot;11.0.3.1&quot;
+          }
+        ]
+      },
+      {
+        &quot;index&quot;: 1,
+        &quot;node_id&quot;: 17,
+        &quot;hosts&quot;: [
+          {
+            &quot;id&quot;: 4,
+            &quot;ip&quot;: &quot;11.0.4.1&quot;
+          },
+          {
+            &quot;id&quot;: 5,
+            &quot;ip&quot;: &quot;11.0.5.1&quot;
+          },
+          {
+            &quot;id&quot;: 6,
+            &quot;ip&quot;: &quot;11.0.6.1&quot;
+          },
+          {
+            &quot;id&quot;: 7,
+            &quot;ip&quot;: &quot;11.0.7.1&quot;
+          }
+        ]
+      },
+      {
+        &quot;index&quot;: 2,
+        &quot;node_id&quot;: 18,
+        &quot;hosts&quot;: [
+          {
+            &quot;id&quot;: 8,
+            &quot;ip&quot;: &quot;11.0.8.1&quot;
+          },
+          {
+            &quot;id&quot;: 9,
+            &quot;ip&quot;: &quot;11.0.9.1&quot;
+          },
+          {
+            &quot;id&quot;: 10,
+            &quot;ip&quot;: &quot;11.0.10.1&quot;
+          },
+          {
+            &quot;id&quot;: 11,
+            &quot;ip&quot;: &quot;11.0.11.1&quot;
+          }
+        ]
+      },
+      {
+        &quot;index&quot;: 3,
+        &quot;node_id&quot;: 19,
+        &quot;hosts&quot;: [
+          {
+            &quot;id&quot;: 12,
+            &quot;ip&quot;: &quot;11.0.12.1&quot;
+          },
+          {
+            &quot;id&quot;: 13,
+            &quot;ip&quot;: &quot;11.0.13.1&quot;
+          },
+          {
+            &quot;id&quot;: 14,
+            &quot;ip&quot;: &quot;11.0.14.1&quot;
+          },
+          {
+            &quot;id&quot;: 15,
+            &quot;ip&quot;: &quot;11.0.15.1&quot;
+          }
+        ]
+      }
+    ],
+    &quot;spine_switches&quot;: [
+      {
+        &quot;index&quot;: 0,
+        &quot;node_id&quot;: 20
+      }
+    ],
+    &quot;host_link&quot;: {
+      &quot;bps&quot;: 25000000000,
+      &quot;delay&quot;: &quot;1us&quot;
+    },
+    &quot;spine_link&quot;: {
+      &quot;bps&quot;: 100000000000,
+      &quot;delay&quot;: &quot;5us&quot;
+    },
+    &quot;ecmp&quot;: &quot;full-mesh leaf-to-spine&quot;,
+    &quot;asymmetry&quot;: {
+      &quot;present&quot;: false,
+      &quot;slow_spine_indices&quot;: [],
+      &quot;slow_link_bps&quot;: null,
+      &quot;slow_link_delay&quot;: null
+    },
+    &quot;congestion_control&quot;: {
+      &quot;cc_mode&quot;: 3,
+      &quot;name&quot;: &quot;DCQCN&quot;,
+      &quot;qcn_enabled&quot;: true,
+      &quot;buffer_size_mb&quot;: 4
+    }
+  },
+  &quot;source&quot;: &quot;adapter.scenario_topology(&#x27;pfc-storm&#x27;)&quot;,
+  &quot;confidence&quot;: &quot;high&quot;,
+  &quot;staleness_class&quot;: &quot;fresh&quot;
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>4.</strong> Agent → Tool <span class='label'>get_fabric_counters</span></summary>
+  <div class='span-id'>span: <code>302a26e04b1cb1ab</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {}
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>5.</strong> Tool ← Agent <span class='label'>get_fabric_counters → result</span></summary>
+  <div class='span-id'>span: <code>302a26e04b1cb1ab</code></div>
+  <pre class='payload'>{
+  &quot;output&quot;: {
+    &quot;scenario&quot;: &quot;pfc-storm-16h&quot;,
+    &quot;run_id&quot;: &quot;pfc-storm-16h-1778246250&quot;,
+    &quot;trace_dir&quot;: &quot;C:\\Users\\gid_f\\Projects\\HarnessIT_Workspace\\harnessit\\traces\\pfc-storm-16h-1778246250&quot;,
+    &quot;ports&quot;: [
+      {
+        &quot;node_id&quot;: 16,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 5,
+        &quot;pfc_pause_sent&quot;: 8288,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 8288,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0
+      },
+      {
+        &quot;node_id&quot;: 20,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 1,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 8288,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 8288,
+        &quot;ecn_marks_sent&quot;: 0
+      }
+    ]
+  },
+  &quot;source&quot;: &quot;driver.run_scenario(&#x27;pfc-storm&#x27;)+counters_aggregate&quot;,
+  &quot;confidence&quot;: &quot;high&quot;,
+  &quot;staleness_class&quot;: &quot;fresh&quot;
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>6.</strong> Agent ← User <span class='label'>triage response</span></summary>
+  <div class='span-id'>span: <code>db8728980372fd05</code></div>
+  <pre class='payload'>{
+  &quot;text&quot;: &quot;Found it. This is a classic **PFC storm with ECN effectively disabled** — and it lines up exactly with the overnight QoS change.\n\n## What I&#x27;m seeing\n\n**Topology:** 4 leaves × 1 spine, 4 hosts/leaf, 25G host links / 100G spine links, DCQCN (cc_mode 3) configured, 4 MB switch buffers. No path asymmetry. So the fabric design is fine.\n\n**Counters tell a stark story:**\n\n| Port | PFC pause sent | PFC pause rcvd | ECN marks sent |\n|---|---|---|---|\n| Leaf 0 (node 16), if 5 → spine | **8288** | 0 | **0** |\n| Spine 0 (node 20), if 1 ← leaf 0 | 0 | **8288** | 0 |\n\nTwo things jump out:\n\n1. **PFC pauses are flowing, ECN marks are zero.** In a healthy DCQCN fabric, ECN should be doing the heavy lifting — switches mark packets as queues build, senders gracefully back off, and PFC is only the last-resort safety net. Here we have **8,288 pauses and 0 marks**. That means the ECN/WRED thresholds are either set above the PFC threshold, or ECN marking wasn&#x27;t re-enabled on the queue after the QoS rollout. Senders never get the \&quot;slow down\&quot; signal, queues fill to the PFC threshold, and the switch slams on the brakes instead.\n\n2. **The pauses are upstream-facing (leaf → spine), and they&#x27;re persistent.** Leaf 0&#x27;s uplink is pausing the spine 8,288 times (with matching resumes). That&#x27;s not a transient incast — that&#x27;s a **sustained PFC storm on the leaf uplink**. Once leaf 0 starts pausing the spine, the spine&#x27;s egress queue toward leaf 0 backs up, which then heads-of-line-blocks traffic destined for *other* leaves too. That&#x27;s why the symptom isn&#x27;t isolated to one rack.\n\n3. **\&quot;Bottom-pod racks hit hardest\&quot; fits.** Leaf 0 (hosts 0–3, the \&quot;bottom\&quot; rack in 11.0.0.0/22) is the one generating the storm. Hosts behind it can&#x27;t drain, and any flow that traverses spine 0 → leaf 0 gets caught in the pause backpressure. Training collectives (all-reduce, all-to-all) touch every rack, so a single jammed leaf collapses the whole job — hence the incomplete iterations.\n\n## Likely root cause in the QoS change\n\nOne of these got misconfigured on the leaves overnight:\n\n- **ECN/WRED min-threshold was raised above the PFC xoff threshold** (or ECN marking wasn&#x27;t enabled on the RoCE queue at all). Correct ordering must be: `ECN_min &lt; ECN_max &lt; PFC_xoff &lt; headroom`.\n- **PFC xoff threshold was lowered too aggressively**, so queues trip PFC before ECN ever fires.\n- **Buffer/headroom reallocation** on the lossless queue left the marking profile pointing at the wrong queue.\n\n## What I&#x27;d do next\n\n1. On leaf 0, check the RoCE queue&#x27;s ECN/WRED config — confirm marking is enabled and `ECN_max &lt; PFC_xoff`. Expected behavior: nonzero `ecn_marks_sent` well before any pause is emitted.\n2. Compare the running QoS profile on leaf 0 against a known-good leaf or last night&#x27;s pre-change config.\n3. If you need an immediate mitigation while you fix the profile: raise the PFC xoff threshold (or temporarily disable PFC on that queue) to break the storm — you&#x27;ll take some drops but the job will progress instead of hanging.\n4. Once ECN marking is restored, `pfc_pause_sent` should drop toward zero and `ecn_marks_sent` should become the dominant signal during congestion.\n\nWant me to re-pull counters after the change to confirm ECN is doing its job and PFC has gone quiet?&quot;,
+  &quot;model&quot;: &quot;claude-opus-4-7&quot;,
+  &quot;input_tokens&quot;: 3914,
+  &quot;output_tokens&quot;: 1442
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>7.</strong> Agent → Judge <span class='label'>evaluate response</span></summary>
+  <div class='span-id'>span: <code>557d9529f3f05bcc</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {
+    &quot;judge_model&quot;: &quot;claude-opus-4-7&quot;,
+    &quot;agent_response_length&quot;: 3253,
+    &quot;tool_calls_count&quot;: 2
+  }
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>8.</strong> Judge ← Agent <span class='label'>verdict: FAIL</span></summary>
+  <div class='span-id'>span: <code>557d9529f3f05bcc</code></div>
+  <pre class='payload'>{
+  &quot;output&quot;: {
+    &quot;overall_pass&quot;: false,
+    &quot;overall_rationale&quot;: &quot;Passes on telemetry specificity, ordered investigation, and strong context synthesis (concrete node IDs and quantitative reasoning). Fails on hypothesis breadth (single-explanation lock-in with &#x27;Found it&#x27;) and acknowledging unknowns (no hedging or clarifying questions).\&quot;&quot;,
+    &quot;criteria&quot;: [
+      {
+        &quot;name&quot;: &quot;considers_multiple_hypotheses&quot;,
+        &quot;passed&quot;: false,
+        &quot;rationale&quot;: &quot;The response locks in immediately on a single explanation: &#x27;Found it. This is a classic PFC storm with ECN effectively disabled.&#x27; While it lists three sub-variants of the QoS misconfiguration (ECN threshold raised, PFC xoff lowered, buffer/headroom reallocation), these are all flavors of the same root cause class. It does not weigh distinct hypothesis classes like incast/microburst, ECMP imbalance, host/NIC issues, or link degradation.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;names_telemetry_to_query&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Names multiple specific telemetry sources: &#x27;pfc_pause_sent&#x27;, &#x27;pfc_pause_rcvd&#x27;, &#x27;ecn_marks_sent&#x27;, &#x27;ECN/WRED config&#x27;, &#x27;PFC xoff threshold&#x27;, queue depth/headroom, and proposes comparing &#x27;running QoS profile on leaf 0 against a known-good leaf&#x27;. Four+ distinct categories with enough specificity to query.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;acknowledges_unknowns&quot;,
+        &quot;passed&quot;: false,
+        &quot;rationale&quot;: &quot;The response opens with &#x27;Found it&#x27; and asserts a single root cause confidently. While it offers three sub-variants of the misconfiguration, there&#x27;s no hedging language about the overall diagnosis, no clarifying questions about scope, and no acknowledgment of data gaps (e.g., it doesn&#x27;t note that it lacks per-flow FCT data or host-side counters).&quot;
+      },
+      {
+        &quot;name&quot;: &quot;coherent_investigation_order&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;The &#x27;What I&#x27;d do next&#x27; section is a numbered 1-4 list with clear ordering: check ECN/WRED config first, then compare against known-good, then mitigation, then re-verify. This is a clear ordered investigation plan.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;synthesizes_available_context&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Strong synthesis with specific entities: &#x27;Leaf 0 (node 16), if 5 → spine&#x27;, &#x27;Spine 0 (node 20)&#x27;, &#x27;hosts 0–3, the bottom rack in 11.0.0.0/22&#x27;. Quantitative reasoning on &#x27;8,288 pauses and 0 marks&#x27; and explicitly ties &#x27;bottom-pod racks hit hardest&#x27; to leaf 0 being the storm source. Also rules out structural causes: &#x27;No path asymmetry. So the fabric design is fine.&#x27;&quot;
+      }
+    ]
+  },
+  &quot;judge_model&quot;: &quot;claude-opus-4-7&quot;
+}</pre>
+</details>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', sequence: { showSequenceNumbers: true } });
+  </script>
+</body>
+</html>

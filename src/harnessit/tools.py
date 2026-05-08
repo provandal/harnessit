@@ -58,6 +58,26 @@ GET_TOPOLOGY_SCHEMA: dict[str, Any] = {
     },
 }
 
+GET_FABRIC_COUNTERS_SCHEMA: dict[str, Any] = {
+    "name": "get_fabric_counters",
+    "description": (
+        "Return per-port fabric counters for the RDMA leaf-spine fabric "
+        "you are investigating. Each port record carries PFC counters "
+        "(pause_sent, pause_rcvd, resume_sent, resume_rcvd) and ECN-CN "
+        "counters (marks_sent) side-by-side. Zero counts are surfaced "
+        "as 0, never as missing — observed-zero is data, not absence. "
+        "Useful when triaging fabric-side congestion: PFC tells you "
+        "switches are pausing senders; ECN-CN tells you switches are "
+        "marking packets to throttle senders via DCQCN. The relationship "
+        "between the two counter classes is diagnostic. No arguments."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+    },
+}
+
 
 @dataclass(frozen=True)
 class ToolError:
@@ -97,7 +117,7 @@ class Tools:
     @property
     def schemas(self) -> list[dict[str, Any]]:
         """Anthropic tool schemas for the ``tools=`` parameter of messages.create."""
-        return [GET_TOPOLOGY_SCHEMA]
+        return [GET_TOPOLOGY_SCHEMA, GET_FABRIC_COUNTERS_SCHEMA]
 
     async def execute(self, name: str, args: dict[str, Any]) -> Any:
         """Dispatch a tool_use block to the matching executor.
@@ -110,6 +130,8 @@ class Tools:
         """
         if name == "get_topology":
             return await self._get_topology(args)
+        if name == "get_fabric_counters":
+            return await self._get_fabric_counters(args)
         return ToolError(
             tool=name,
             message=(
@@ -149,8 +171,34 @@ class Tools:
         )
         return data
 
+    @observe(
+        name="harnessit.tools.get_fabric_counters",
+        as_type="span",
+        capture_input=False,
+        capture_output=False,
+    )
+    async def _get_fabric_counters(self, args: dict[str, Any]) -> dict[str, Any]:
+        """Forward to ``DoppelgangerClient.get_fabric_counters`` with the bound scenario."""
+        envelope = await self._substrate.get_fabric_counters_envelope(self._scenario_name)
+        data = envelope["data"]
+        get_client().update_current_span(
+            input={
+                "agent_args": args,
+                "bound_scenario": self._scenario_name,
+            },
+            output=data,
+            metadata={
+                "source": envelope.get("source"),
+                "confidence": envelope.get("confidence"),
+                "staleness_class": envelope.get("staleness_class"),
+                "observed_at_ns": envelope.get("observed_at_ns"),
+            },
+        )
+        return data
+
 
 __all__ = [
+    "GET_FABRIC_COUNTERS_SCHEMA",
     "GET_TOPOLOGY_SCHEMA",
     "ToolError",
     "Tools",
