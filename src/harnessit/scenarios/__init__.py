@@ -15,6 +15,7 @@ from harnessit.scenarios.microburst import (
     microburst_with_topology_tool,
 )
 from harnessit.scenarios.pfc_storm import (
+    pfc_storm_realistic_with_counters_tool,
     pfc_storm_with_counters_tool,
 )
 
@@ -23,4 +24,5 @@ __all__ = [
     "microburst_with_topology",
     "microburst_with_topology_tool",
     "pfc_storm_with_counters_tool",
+    "pfc_storm_realistic_with_counters_tool",
 ]

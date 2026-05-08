@@ -90,9 +90,47 @@ def pfc_storm_with_counters_tool() -> EvalScenario:
     )
 
 
+def pfc_storm_realistic_with_counters_tool() -> EvalScenario:
+    """Stage 5a-realistic closing test: same fault, production-shaped fabric.
+
+    Identical to :func:`pfc_storm_with_counters_tool` except the
+    underlying scenario is ``pfc-storm-realistic`` — full per-port
+    counter set (rx/tx bytes+packets, drops, qlen peak), every switch
+    port enumerated and zero-filled, plus layered cross-leaf background
+    traffic so the fabric baseline shows ECN marks distributed across
+    many ports under healthy config.
+
+    The Stage 5a closing test (trace
+    ``668a11072f2a9d51814ce55841fca6ef``) found that naked Opus 4.7
+    nailed the diagnosis from a 2-port toy payload. This variant asks
+    whether the same model still nails it when the fabric looks
+    production-shaped: hundreds of ports active, ECN firing on
+    background flows, asymmetry visible only as a *relative* anomaly
+    between storm ports and baseline. The result calibrates Stage 5b's
+    skill thesis: epistemic discipline (if the model still nails it) or
+    RoCE-specific recognition under realistic noise (if it doesn't).
+    """
+    return EvalScenario(
+        name="pfc-storm-realistic-with-counters-tool",
+        description=(
+            "Symptom + tools, no skill. Production-shaped pfc-storm: "
+            "full counter set + topology-aware port enumeration + layered "
+            "background traffic. Asymmetry is relative, not absolute."
+        ),
+        system_prompt=SYSTEM_PROMPT,
+        target_scenario="pfc-storm-realistic",
+        baseline_scenario=None,
+        build_user_prompt=_build_user_prompt,
+        score=_score,
+        expected_to_pass=False,
+        uses_tools=True,
+    )
+
+
 __all__ = [
     "SYSTEM_PROMPT",
     "TARGET_SCENARIO",
     "USER_TICKET",
     "pfc_storm_with_counters_tool",
+    "pfc_storm_realistic_with_counters_tool",
 ]
