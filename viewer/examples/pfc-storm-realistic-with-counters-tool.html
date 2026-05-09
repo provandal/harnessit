@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>HarnessIT trajectory — pfc-storm-realistic-with-counters-tool</title>
+  <style>
+:root {
+  --bg: #fafafa; --fg: #1a1a1a; --accent: #2563eb;
+  --muted: #6b7280; --pass: #15803d; --fail: #b91c1c;
+  --panel-bg: #ffffff; --border: #e5e7eb;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0; padding: 2rem; max-width: 1100px;
+  margin-left: auto; margin-right: auto;
+  background: var(--bg); color: var(--fg); line-height: 1.5;
+}
+h1 { margin: 0 0 0.5rem 0; font-size: 1.5rem; }
+h2 { margin: 1.5rem 0 0.75rem; font-size: 1.15rem; }
+.trace-header { padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.trace-id, .timestamp { color: var(--muted); font-size: 0.875rem; margin: 0.25rem 0; }
+.eval-meta { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.75rem; margin-top: 0.5rem; font-size: 0.875rem; }
+.eval-meta dt { color: var(--muted); }
+.eval-meta dd { margin: 0; }
+.diagram { background: var(--panel-bg); padding: 1rem; border-radius: 6px; border: 1px solid var(--border); margin: 1rem 0; overflow-x: auto; }
+section { background: var(--panel-bg); padding: 1rem 1.5rem; margin: 1rem 0; border-radius: 6px; border: 1px solid var(--border); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { padding: 0.5rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; color: var(--muted); }
+.criterion-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+td.pass { color: var(--pass); font-weight: 600; }
+td.fail { color: var(--fail); font-weight: 600; }
+.rationale { color: var(--fg); }
+.judge-overall { margin-top: 0.75rem; padding: 0.75rem; background: #f3f4f6; border-radius: 4px; font-size: 0.95rem; }
+details.message { background: var(--panel-bg); margin: 0.5rem 0; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; }
+details.message summary { cursor: pointer; }
+details.message summary .label { color: var(--accent); }
+.span-id { font-size: 0.75rem; color: var(--muted); margin: 0.25rem 0; }
+.payload { background: #f9fafb; padding: 0.5rem; border-radius: 4px; font-size: 0.825rem; overflow-x: auto; max-height: 24rem; overflow-y: auto; white-space: pre-wrap; }
+.ctx-block { margin: 0.5rem 0; }
+.ctx-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+.ctx-empty { color: var(--muted); font-style: italic; }
+.tools-list { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; padding: 0.5rem; background: #f9fafb; border-radius: 4px; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; }
+.section-heading { color: var(--muted); font-size: 0.875rem; margin: 1.5rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+</style>
+</head>
+<body>
+  <header class='trace-header'>
+  <h1>HarnessIT trajectory: pfc-storm-realistic-with-counters-tool</h1>
+  <div class='trace-id'>trace: <code>3ef43138e182c9c84d41f35cc9a353b0</code></div>
+  <div class='timestamp'>2026-05-09T16:18:56.222000+00:00</div>
+  <dl class='eval-meta'><dt>scenario_name</dt><dd>pfc-storm-realistic-with-counters-tool</dd><dt>scoring_mode</dt><dd>llm_judge</dd><dt>expected_to_pass</dt><dd>False</dd><dt>target_run_id</dt><dd>pfc-storm-realistic-with-counters-tool-1778343082__target</dd></dl>
+</header>
+
+  <section class="diagram-section">
+    <h2>Sequence diagram</h2>
+    <div class="diagram">
+      <pre class="mermaid">sequenceDiagram
+  participant USER as User
+  participant AGENT as Agent
+  participant TOOL as Tool
+  participant JUDGE as Judge
+  USER-&gt;&gt;AGENT: help ticket
+  AGENT-&gt;&gt;TOOL: get_topology
+  TOOL--&gt;&gt;AGENT: get_topology → result
+  AGENT-&gt;&gt;TOOL: get_fabric_counters
+  TOOL--&gt;&gt;AGENT: get_fabric_counters → result
+  AGENT--&gt;&gt;USER: triage response
+  AGENT-&gt;&gt;JUDGE: evaluate response
+  JUDGE--&gt;&gt;AGENT: verdict - FAIL</pre>
+    </div>
+  </section>
+
+  <section class='scores-panel'>
+  <h2>Trace-level scores</h2>
+  <table class='scores-table'>
+    <thead><tr><th>Name</th><th>Value</th><th>Comment</th></tr></thead>
+    <tbody><tr><td class='criterion-name'>harnessit.eval.overall_pass</td><td class='fail'>0.0</td><td>Passes 4 of 5 criteria (telemetry, unknowns, ordering, synthesis are strong). Fails considers_multiple_hypotheses: the response commits to a single unified PFC/ECN root cause without weighing distinct alternative hypothesis classes like incast, ECMP imbalance, NIC/host issues, or cable degradation.&quot;</td></tr></tbody>
+  </table>
+</section>
+  <section class='judge-panel'>
+  <h2>LLM judge — per-criterion rationale</h2>
+  <table class='judge-table'>
+    <thead><tr><th>Verdict</th><th>Criterion</th><th>Rationale</th></tr></thead>
+    <tbody><tr><td class='fail'>FAIL</td><td class='criterion-name'>considers_multiple_hypotheses</td><td class='rationale'>The response locks in on a single root cause (&#x27;PFC storm on Leaf 0... ECN/DCQCN is silent&#x27;) and explains it via misconfigured PFC/ECN thresholds. While it touches PFC propagation, ECN/DCQCN behavior, and HoL blocking, these are all part of one unified explanation rather than distinct competing hypothesis classes. No mention of incast, ECMP imbalance, NIC/host issues, cable/optical degradation, etc. as alternatives weighed.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>names_telemetry_to_query</td><td class='rationale'>Names multiple specific telemetry sources: &#x27;pause_sent / pause_rcvd / resume_sent / resume_rcvd&#x27;, &#x27;ecn_marks_sent&#x27;, &#x27;qlen_peak&#x27; (queue depth/buffer occupancy), per-port counters by if_index, and rx/tx packets. Suggests re-pulling counters post-fix to verify ecn_marks_sent &gt; 0 and pause_sent stops growing.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>acknowledges_unknowns</td><td class='rationale'>Uses hedging language: &#x27;almost certainly set the PFC threshold below...&#x27;, &#x27;exact numbers depend on platform&#x27;, &#x27;suggests it may have been disabled or applied to the wrong TC/DSCP&#x27;, and &#x27;Worth checking whether the new profile was pushed to all leaves but only Leaf 0 is hot because of traffic placement — if a job is rescheduled, the storm may move.&#x27;</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>coherent_investigation_order</td><td class='rationale'>Response is structured with clear sections (Topology context, Smoking gun, What broke, Recommended actions) and the recommended actions are a numbered list (1. Roll back... 2. Verify... 3. After the fix re-pull... 4. Check fleet-wide). The diagnosis itself is also enumerated 1-4.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>synthesizes_available_context</td><td class='rationale'>Heavy synthesis of concrete entities and quantitative reasoning: &#x27;Leaf 0 (node 16), if_index 5&#x27;, &#x27;Spine (node 20), if_index 1&#x27;, &#x27;684 KB peak vs. ~2.5 KB on every other downlink — ~270× higher&#x27;, &#x27;pause/resume counts are equal (8288 each) — this isn&#x27;t a stuck/deadlocked PFC; it&#x27;s repeated pause-resume cycling&#x27;, and maps &#x27;bottom-pod racks&#x27; to &#x27;hosts 0–3, 11.0.0.1–11.0.3.1&#x27;.</td></tr></tbody>
+  </table>
+  <div class='judge-overall'><strong>Overall (claude-opus-4-7):</strong> Passes 4 of 5 criteria (telemetry, unknowns, ordering, synthesis are strong). Fails considers_multiple_hypotheses: the response commits to a single unified PFC/ECN root cause without weighing distinct alternative hypothesis classes like incast, ECMP imbalance, NIC/host issues, or cable degradation.&quot;</div>
+</section>
+
+  <section class="messages-section">
+    <h2>Messages (8)</h2>
+    <details class='message' open>
+  <summary><strong>1.</strong> User → Agent <span class='label'>help ticket</span></summary>
+  <div class='span-id'>span: <code>8be526a05df97320</code></div>
+  <div class='ctx-block'><div class='ctx-label'>system prompt</div><pre class='payload'>You are a network-investigation assistant for an RDMA leaf-spine fabric. Help the user diagnose their issue.</pre></div><div class='ctx-block'><div class='ctx-label'>tools available to agent</div><div class='tools-list'>get_topology, get_fabric_counters</div></div><div class='ctx-block'><div class='ctx-label'>user prompt (help ticket)</div><pre class='payload'>Hey network team — RDMA training jobs are seeing throughput collapse and a bunch of incomplete iterations on the AI cluster. Started early this morning, right after the network team rolled out the new buffer/QoS settings on the leaf switches overnight. Bottom-pod racks are hit hardest. Can you help figure out what broke?
+</pre></div>
+</details>
+<details class='message'>
+  <summary><strong>2.</strong> Agent → Tool <span class='label'>get_topology</span></summary>
+  <div class='span-id'>span: <code>9524ff50a7784f97</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {}
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>3.</strong> Tool ← Agent <span class='label'>get_topology → result</span></summary>
+  <div class='span-id'>span: <code>9524ff50a7784f97</code></div>
+  <pre class='payload'>{
+  &quot;output&quot;: {
+    &quot;shape&quot;: &quot;leaf-spine&quot;,
+    &quot;leaves&quot;: 4,
+    &quot;spines&quot;: 1,
+    &quot;hosts_per_leaf&quot;: 4,
+    &quot;total_hosts&quot;: 16,
+    &quot;host_ip_convention&quot;: &quot;Host with substrate id N has IP 11.&lt;(N // 256) % 256&gt;.&lt;N % 256&gt;.1. The fourth octet is always 1 (anchor). The third octet equals N mod 256 (so within a /16 block, the third octet equals the host_id). The second octet is N // 256 (only nonzero for fabrics with more than 256 hosts). Pinned by the substrate&#x27;s node_id_to_ip function in examples/PowerTCP/powertcp-evaluation-burst.cc; same convention across all scenarios.&quot;,
+    &quot;leaf_switches&quot;: [
+      {
+        &quot;index&quot;: 0,
+        &quot;node_id&quot;: 16,
+        &quot;hosts&quot;: [
+          {
+            &quot;id&quot;: 0,
+            &quot;ip&quot;: &quot;11.0.0.1&quot;
+          },
+          {
+            &quot;id&quot;: 1,
+            &quot;ip&quot;: &quot;11.0.1.1&quot;
+          },
+          {
+            &quot;id&quot;: 2,
+            &quot;ip&quot;: &quot;11.0.2.1&quot;
+          },
+          {
+            &quot;id&quot;: 3,
+            &quot;ip&quot;: &quot;11.0.3.1&quot;
+          }
+        ]
+      },
+      {
+        &quot;index&quot;: 1,
+        &quot;node_id&quot;: 17,
+        &quot;hosts&quot;: [
+          {
+            &quot;id&quot;: 4,
+            &quot;ip&quot;: &quot;11.0.4.1&quot;
+          },
+          {
+            &quot;id&quot;: 5,
+            &quot;ip&quot;: &quot;11.0.5.1&quot;
+          },
+          {
+            &quot;id&quot;: 6,
+            &quot;ip&quot;: &quot;11.0.6.1&quot;
+          },
+          {
+            &quot;id&quot;: 7,
+            &quot;ip&quot;: &quot;11.0.7.1&quot;
+          }
+        ]
+      },
+      {
+        &quot;index&quot;: 2,
+        &quot;node_id&quot;: 18,
+        &quot;hosts&quot;: [
+          {
+            &quot;id&quot;: 8,
+            &quot;ip&quot;: &quot;11.0.8.1&quot;
+          },
+          {
+            &quot;id&quot;: 9,
+            &quot;ip&quot;: &quot;11.0.9.1&quot;
+          },
+          {
+            &quot;id&quot;: 10,
+            &quot;ip&quot;: &quot;11.0.10.1&quot;
+          },
+          {
+            &quot;id&quot;: 11,
+            &quot;ip&quot;: &quot;11.0.11.1&quot;
+          }
+        ]
+      },
+      {
+        &quot;index&quot;: 3,
+        &quot;node_id&quot;: 19,
+        &quot;hosts&quot;: [
+          {
+            &quot;id&quot;: 12,
+            &quot;ip&quot;: &quot;11.0.12.1&quot;
+          },
+          {
+            &quot;id&quot;: 13,
+            &quot;ip&quot;: &quot;11.0.13.1&quot;
+          },
+          {
+            &quot;id&quot;: 14,
+            &quot;ip&quot;: &quot;11.0.14.1&quot;
+          },
+          {
+            &quot;id&quot;: 15,
+            &quot;ip&quot;: &quot;11.0.15.1&quot;
+          }
+        ]
+      }
+    ],
+    &quot;spine_switches&quot;: [
+      {
+        &quot;index&quot;: 0,
+        &quot;node_id&quot;: 20
+      }
+    ],
+    &quot;host_link&quot;: {
+      &quot;bps&quot;: 25000000000,
+      &quot;delay&quot;: &quot;1us&quot;
+    },
+    &quot;spine_link&quot;: {
+      &quot;bps&quot;: 100000000000,
+      &quot;delay&quot;: &quot;5us&quot;
+    },
+    &quot;ecmp&quot;: &quot;full-mesh leaf-to-spine&quot;,
+    &quot;asymmetry&quot;: {
+      &quot;present&quot;: false,
+      &quot;slow_spine_indices&quot;: [],
+      &quot;slow_link_bps&quot;: null,
+      &quot;slow_link_delay&quot;: null
+    },
+    &quot;congestion_control&quot;: {
+      &quot;cc_mode&quot;: 3,
+      &quot;name&quot;: &quot;DCQCN&quot;,
+      &quot;qcn_enabled&quot;: true,
+      &quot;buffer_size_mb&quot;: 4
+    }
+  },
+  &quot;source&quot;: &quot;adapter.scenario_topology(&#x27;pfc-storm-realistic&#x27;)&quot;,
+  &quot;confidence&quot;: &quot;high&quot;,
+  &quot;staleness_class&quot;: &quot;fresh&quot;
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>4.</strong> Agent → Tool <span class='label'>get_fabric_counters</span></summary>
+  <div class='span-id'>span: <code>d51896f8fa66fe53</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {}
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>5.</strong> Tool ← Agent <span class='label'>get_fabric_counters → result</span></summary>
+  <div class='span-id'>span: <code>d51896f8fa66fe53</code></div>
+  <pre class='payload'>{
+  &quot;output&quot;: {
+    &quot;scenario&quot;: &quot;pfc-storm-16h&quot;,
+    &quot;run_id&quot;: &quot;pfc-storm-16h-1778343536&quot;,
+    &quot;trace_dir&quot;: &quot;C:\\Users\\gid_f\\Projects\\HarnessIT_Workspace\\harnessit\\traces\\pfc-storm-16h-1778343536&quot;,
+    &quot;ports&quot;: [
+      {
+        &quot;node_id&quot;: 16,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 1,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 1293496,
+        &quot;rx_bytes&quot;: 1409910640,
+        &quot;tx_packets&quot;: 1293071,
+        &quot;tx_bytes&quot;: 1409447390,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 559170
+      },
+      {
+        &quot;node_id&quot;: 16,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 2,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 0,
+        &quot;rx_bytes&quot;: 0,
+        &quot;tx_packets&quot;: 0,
+        &quot;tx_bytes&quot;: 0,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 0
+      },
+      {
+        &quot;node_id&quot;: 16,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 3,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 0,
+        &quot;rx_bytes&quot;: 0,
+        &quot;tx_packets&quot;: 0,
+        &quot;tx_bytes&quot;: 0,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 0
+      },
+      {
+        &quot;node_id&quot;: 16,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 4,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 0,
+        &quot;rx_bytes&quot;: 0,
+        &quot;tx_packets&quot;: 0,
+        &quot;tx_bytes&quot;: 0,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 0
+      },
+      {
+        &quot;node_id&quot;: 16,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 5,
+        &quot;pfc_pause_sent&quot;: 8288,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 8288,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 1309640,
+        &quot;rx_bytes&quot;: 114502400,
+        &quot;tx_packets&quot;: 1309640,
+        &quot;tx_bytes&quot;: 114502400,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 0
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 1,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 1570481,
+        &quot;rx_bytes&quot;: 871068134,
+        &quot;tx_packets&quot;: 1570481,
+        &quot;tx_bytes&quot;: 871068134,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 2532
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 2,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 1570481,
+        &quot;rx_bytes&quot;: 871065128,
+        &quot;tx_packets&quot;: 1570480,
+        &quot;tx_bytes&quot;: 871064038,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 2532
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 3,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 107797,
+        &quot;rx_bytes&quot;: 9486136,
+        &quot;tx_packets&quot;: 107797,
+        &quot;tx_bytes&quot;: 9486136,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 0
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 4,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 107797,
+        &quot;rx_bytes&quot;: 9486136,
+        &quot;tx_packets&quot;: 107797,
+        &quot;tx_bytes&quot;: 9486136,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 0
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 5,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 3356960,
+        &quot;rx_bytes&quot;: 2193370820,
+        &quot;tx_packets&quot;: 3356960,
+        &quot;tx_bytes&quot;: 2193370820,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 3270
+      },
+      {
+        &quot;node_id&quot;: 18,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 1,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 1570487,
+        &quot;rx_bytes&quot;: 871069664,
+        &quot;tx_packets&quot;: 1570484,
+        &quot;tx_bytes&quot;: 871068398,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 2532
+      },
+      {
+        &quot;node_id&quot;: 18,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 2,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 1570482,
+        &quot;rx_bytes&quot;: 871064214,
+        &quot;tx_packets&quot;: 1570482,
+        &quot;tx_bytes&quot;: 871064214,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 2532
+      },
+      {
+        &quot;node_id&quot;: 18,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 3,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 107797,
+        &quot;rx_bytes&quot;: 9486136,
+        &quot;tx_packets&quot;: 107797,
+        &quot;tx_bytes&quot;: 9486136,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 0
+      },
+      {
+        &quot;node_id&quot;: 18,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 4,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 107797,
+        &quot;rx_bytes&quot;: 9486136,
+        &quot;tx_packets&quot;: 107797,
+        &quot;tx_bytes&quot;: 9486136,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 0
+      },
+      {
+        &quot;node_id&quot;: 18,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 5,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 3356960,
+        &quot;rx_bytes&quot;: 2193369818,
+        &quot;tx_packets&quot;: 3356960,
+        &quot;tx_bytes&quot;: 2193369818,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 3270
+      },
+      {
+        &quot;node_id&quot;: 19,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 1,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 1570476,
+        &quot;rx_bytes&quot;: 871061682,
+        &quot;tx_packets&quot;: 1570476,
+        &quot;tx_bytes&quot;: 871061682,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 2532
+      },
+      {
+        &quot;node_id&quot;: 19,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 2,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 1570478,
+        &quot;rx_bytes&quot;: 871063862,
+        &quot;tx_packets&quot;: 1570476,
+        &quot;tx_bytes&quot;: 871062684,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 2532
+      },
+      {
+        &quot;node_id&quot;: 19,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 3,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 107797,
+        &quot;rx_bytes&quot;: 9486136,
+        &quot;tx_packets&quot;: 107797,
+        &quot;tx_bytes&quot;: 9486136,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 0
+      },
+      {
+        &quot;node_id&quot;: 19,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 4,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 107797,
+        &quot;rx_bytes&quot;: 9486136,
+        &quot;tx_packets&quot;: 107797,
+        &quot;tx_bytes&quot;: 9486136,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 0
+      },
+      {
+        &quot;node_id&quot;: 19,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 5,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 3356955,
+        &quot;rx_bytes&quot;: 2193369378,
+        &quot;tx_packets&quot;: 3356953,
+        &quot;tx_bytes&quot;: 2193369202,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 3270
+      },
+      {
+        &quot;node_id&quot;: 20,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 1,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 8288,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 8288,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 1293947,
+        &quot;rx_bytes&quot;: 1410402230,
+        &quot;tx_packets&quot;: 1293554,
+        &quot;tx_bytes&quot;: 1409973860,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 684520
+      },
+      {
+        &quot;node_id&quot;: 20,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 2,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 3356607,
+        &quot;rx_bytes&quot;: 1761133068,
+        &quot;tx_packets&quot;: 3356607,
+        &quot;tx_bytes&quot;: 1761133068,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 2532
+      },
+      {
+        &quot;node_id&quot;: 20,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 3,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 3356613,
+        &quot;rx_bytes&quot;: 1761133596,
+        &quot;tx_packets&quot;: 3356613,
+        &quot;tx_bytes&quot;: 1761133596,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 2532
+      },
+      {
+        &quot;node_id&quot;: 20,
+        &quot;node_type&quot;: 1,
+        &quot;if_index&quot;: 4,
+        &quot;pfc_pause_sent&quot;: 0,
+        &quot;pfc_pause_rcvd&quot;: 0,
+        &quot;pfc_resume_sent&quot;: 0,
+        &quot;pfc_resume_rcvd&quot;: 0,
+        &quot;ecn_marks_sent&quot;: 0,
+        &quot;rx_packets&quot;: 3356600,
+        &quot;rx_bytes&quot;: 1761126440,
+        &quot;tx_packets&quot;: 3356600,
+        &quot;tx_bytes&quot;: 1761126440,
+        &quot;drops&quot;: 0,
+        &quot;qlen_peak_bytes&quot;: 2532
+      }
+    ]
+  },
+  &quot;source&quot;: &quot;driver.run_scenario(&#x27;pfc-storm-realistic&#x27;)+counters_aggregate&quot;,
+  &quot;confidence&quot;: &quot;high&quot;,
+  &quot;staleness_class&quot;: &quot;fresh&quot;
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>6.</strong> Agent ← User <span class='label'>triage response</span></summary>
+  <div class='span-id'>span: <code>198f1080f94fbd76</code></div>
+  <pre class='payload'>{
+  &quot;text&quot;: &quot;I&#x27;ve got a clear picture. Here&#x27;s what I found.\n\n## Diagnosis: PFC storm on Leaf 0 (node 16), and ECN/DCQCN is silent\n\n### Topology context\n- 4 leaves × 1 spine, 4 hosts/leaf, 25G hosts, 100G uplinks\n- DCQCN enabled (`cc_mode=3`, `qcn_enabled=true`), 4 MB buffers\n- Scenario tag in the counter dump literally reads **`pfc-storm-16h`** — that lines up with \&quot;started overnight.\&quot;\n\n### The smoking gun\n\nLook at **Leaf 0 (node 16), if_index 5** (its uplink to the spine) and the matching **Spine (node 20), if_index 1** (its downlink to Leaf 0):\n\n| Port | pause_sent | pause_rcvd | resume_sent | resume_rcvd | ecn_marks_sent | qlen_peak |\n|---|---|---|---|---|---|---|\n| Leaf16 if5 (uplink) | **8288** | 0 | **8288** | 0 | **0** | 0 |\n| Spine20 if1 (down to Leaf16) | 0 | **8288** | 0 | **8288** | **0** | **684,520 B** |\n| Spine20 if2/3/4 (down to Leaves 17/18/19) | 0 | 0 | 0 | 0 | 0 | ~2.5 KB |\n| All other leaf ports | 0 | 0 | 0 | 0 | 0 | tiny |\n\nSo:\n1. **Leaf 0 is sending PFC pauses upstream to the spine** (8288 pause + 8288 resume frames). The spine is the only device receiving pauses anywhere in the fabric.\n2. The spine&#x27;s egress queue toward Leaf 0 is sitting at **684 KB peak** vs. ~2.5 KB on every other downlink — ~270× higher. That&#x27;s the spine being repeatedly paused by Leaf 0 and backing up.\n3. **`ecn_marks_sent = 0` everywhere.** Not a single ECN-CN mark across the entire fabric, even on the port that&#x27;s clearly congested. DCQCN is configured but never firing.\n4. **Bottom-pod racks hit hardest** = hosts behind Leaf 0 (hosts 0–3, 11.0.0.1–11.0.3.1). Their uplink is the one being paused, so their RDMA flows to/from the rest of the cluster stall.\n\n### What broke in the overnight change\n\nThe new buffer/QoS rollout almost certainly **set the PFC threshold below the ECN/WRED marking threshold** on the leaves (or disabled ECN marking on the lossless queue entirely). The correct ordering for DCQCN to work is:\n\n```\nECN mark threshold  &lt;  PFC Xoff threshold  &lt;  headroom/buffer limit\n```\n\nso that ECN gently throttles senders *before* PFC ever has to pause a link. Right now the fabric is going **straight to PFC with zero ECN marking** — the classic misconfiguration symptom. PFC then propagates head-of-line blocking from Leaf 0&#x27;s congested uplink back to the spine, which slows traffic for any flow traversing that uplink. Training collectives (all-reduce/all-to-all) are especially sensitive because one stalled rank stalls the whole iteration → \&quot;incomplete iterations.\&quot;\n\nNote also that pause/resume counts are **equal (8288 each)** — this isn&#x27;t a stuck/deadlocked PFC; it&#x27;s repeated pause-resume cycling, i.e. an ongoing storm rather than a one-shot event. Consistent with \&quot;started this morning and is continuing.\&quot;\n\n### Recommended actions for the network team\n\n1. **Roll back the overnight leaf QoS/buffer profile**, or at minimum on Leaf 0 (node 16) first to confirm.\n2. Verify on the lossless queue (typically TC3/PG3 for RoCEv2):\n   - **ECN/WRED min threshold is set and is *lower* than the PFC Xoff threshold** (e.g., ECN min ~150 KB, PFC Xoff ~400 KB on a 4 MB buffer — exact numbers depend on platform).\n   - ECN marking is actually **enabled** on that queue (the all-zero `ecn_marks_sent` suggests it may have been disabled or applied to the wrong TC/DSCP).\n   - DSCP-to-TC mapping for RoCE traffic still lands in the lossless PG.\n3. After the fix, re-pull counters and confirm: `ecn_marks_sent &gt; 0` on Leaf 0 if5, and `pause_sent` stops growing. You want some ECN marks (DCQCN doing its job) and ideally near-zero PFC.\n4. Worth checking whether the new profile was pushed to *all* leaves but only Leaf 0 is hot because of traffic placement — if a job is rescheduled, the storm may move. Fix the config fleet-wide, not just on Leaf 0.\n\nShort version: **overnight change broke the ECN-before-PFC ordering on the leaves; Leaf 0&#x27;s uplink is now in a sustained PFC pause/resume cycle that&#x27;s HOL-blocking the spine and starving the bottom-pod hosts. Roll back the QoS change and restore proper ECN thresholds.**&quot;,
+  &quot;model&quot;: &quot;claude-opus-4-7&quot;,
+  &quot;input_tokens&quot;: 7832,
+  &quot;output_tokens&quot;: 1887
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>7.</strong> Agent → Judge <span class='label'>evaluate response</span></summary>
+  <div class='span-id'>span: <code>d00e71e97a2b4035</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {
+    &quot;judge_model&quot;: &quot;claude-opus-4-7&quot;,
+    &quot;agent_response_length&quot;: 4033,
+    &quot;tool_calls_count&quot;: 2
+  }
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>8.</strong> Judge ← Agent <span class='label'>verdict: FAIL</span></summary>
+  <div class='span-id'>span: <code>d00e71e97a2b4035</code></div>
+  <pre class='payload'>{
+  &quot;output&quot;: {
+    &quot;overall_pass&quot;: false,
+    &quot;overall_rationale&quot;: &quot;Passes 4 of 5 criteria (telemetry, unknowns, ordering, synthesis are strong). Fails considers_multiple_hypotheses: the response commits to a single unified PFC/ECN root cause without weighing distinct alternative hypothesis classes like incast, ECMP imbalance, NIC/host issues, or cable degradation.\&quot;&quot;,
+    &quot;criteria&quot;: [
+      {
+        &quot;name&quot;: &quot;considers_multiple_hypotheses&quot;,
+        &quot;passed&quot;: false,
+        &quot;rationale&quot;: &quot;The response locks in on a single root cause (&#x27;PFC storm on Leaf 0... ECN/DCQCN is silent&#x27;) and explains it via misconfigured PFC/ECN thresholds. While it touches PFC propagation, ECN/DCQCN behavior, and HoL blocking, these are all part of one unified explanation rather than distinct competing hypothesis classes. No mention of incast, ECMP imbalance, NIC/host issues, cable/optical degradation, etc. as alternatives weighed.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;names_telemetry_to_query&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Names multiple specific telemetry sources: &#x27;pause_sent / pause_rcvd / resume_sent / resume_rcvd&#x27;, &#x27;ecn_marks_sent&#x27;, &#x27;qlen_peak&#x27; (queue depth/buffer occupancy), per-port counters by if_index, and rx/tx packets. Suggests re-pulling counters post-fix to verify ecn_marks_sent &gt; 0 and pause_sent stops growing.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;acknowledges_unknowns&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Uses hedging language: &#x27;almost certainly set the PFC threshold below...&#x27;, &#x27;exact numbers depend on platform&#x27;, &#x27;suggests it may have been disabled or applied to the wrong TC/DSCP&#x27;, and &#x27;Worth checking whether the new profile was pushed to all leaves but only Leaf 0 is hot because of traffic placement — if a job is rescheduled, the storm may move.&#x27;&quot;
+      },
+      {
+        &quot;name&quot;: &quot;coherent_investigation_order&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Response is structured with clear sections (Topology context, Smoking gun, What broke, Recommended actions) and the recommended actions are a numbered list (1. Roll back... 2. Verify... 3. After the fix re-pull... 4. Check fleet-wide). The diagnosis itself is also enumerated 1-4.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;synthesizes_available_context&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Heavy synthesis of concrete entities and quantitative reasoning: &#x27;Leaf 0 (node 16), if_index 5&#x27;, &#x27;Spine (node 20), if_index 1&#x27;, &#x27;684 KB peak vs. ~2.5 KB on every other downlink — ~270× higher&#x27;, &#x27;pause/resume counts are equal (8288 each) — this isn&#x27;t a stuck/deadlocked PFC; it&#x27;s repeated pause-resume cycling&#x27;, and maps &#x27;bottom-pod racks&#x27; to &#x27;hosts 0–3, 11.0.0.1–11.0.3.1&#x27;.&quot;
+      }
+    ]
+  },
+  &quot;judge_model&quot;: &quot;claude-opus-4-7&quot;
+}</pre>
+</details>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', sequence: { showSequenceNumbers: true } });
+  </script>
+</body>
+</html>

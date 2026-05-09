@@ -119,6 +119,7 @@ project; the Stage 5a trace lives on the self-hosted Langfuse stack.
 | with-topology | `bf204faa2834c54c5eef6cc207f72379` | Cloud |
 | with-topology-tool | `8c4399b12477966d8ca0ad3fb1a1323d` | Cloud |
 | pfc-storm-with-counters-tool | `668a11072f2a9d51814ce55841fca6ef` | Self-hosted |
+| pfc-storm-realistic-with-counters-tool | `3ef43138e182c9c84d41f35cc9a353b0` | Self-hosted |
 
 ## Stage 5a Closing Test (2026-05-08)
 
@@ -164,6 +165,55 @@ the asymmetry is *relative* rather than *absolute*. The current
 closing-test artifact is honest about this constraint; the next
 iteration will check whether the diagnosis holds under
 production-shaped complexity.
+
+## Stage 5a-realistic Closing Test (2026-05-09)
+
+[`pfc-storm-realistic-with-counters-tool.html`](pfc-storm-realistic-with-counters-tool.html)
+is the closing-test artifact for **Stage 5a-realistic** — same fault
+class as Stage 5a but on a production-shaped fabric. Three substrate +
+Doppelgänger lifts shipped between 2026-05-08 and 2026-05-09:
+
+1. Substrate adds a per-port end-of-sim counter rollup
+   (`counters.txt`) carrying rx/tx packets+bytes, drops, and
+   `qlen_peak_bytes` for every switch port that saw activity.
+2. Doppelgänger's `aggregate_counters` becomes topology-aware: every
+   switch port the topology declares appears in the response, zero-filled
+   when no events fired. The agent must find the storm port among
+   (e.g. for the default 4×1×4 topology) ~24 enumerated ports.
+3. `pfc_storm()` adds layered cross-leaf background traffic via
+   `background_pairs_per_leaf`; the new `pfc-storm-realistic` factory
+   calls it with 2 pairs/leaf so the fabric baseline shows volumetric
+   activity on ≥8 distinct ports under healthy ECN config.
+
+**Result: naked Opus 4.7 still nails the diagnosis.** Trace
+`3ef43138e182c9c84d41f35cc9a353b0`. The agent identified the storm port
+*precisely* (`Leaf 0 (node 16), if_index 5` — the leaf's uplink to the
+spine) and the corresponding spine ingress (`Spine (node 20), if_index
+1`), used the `qlen_peak_bytes` field from the new counter set to spot
+the ~270× depth disparity (684 KB on the storm spine port vs ~2.5 KB
+on its siblings), framed the pause/resume symmetry correctly
+("pause/resume counts are equal — this isn't a stuck/deadlocked PFC;
+it's repeated pause-resume cycling"), proposed the correct root cause
+class ("set the PFC threshold below the ECN/WRED marking threshold"),
+hedged on platform-specific values, and outlined a falsification
+rollback. The qlen_peak signal is *load-bearing* in this response — it
+didn't appear in the Stage 5a (toy) closing test because the counter
+set didn't include it. Adding the volumetric fields strengthened the
+diagnosis rather than hiding it.
+
+The judge verdict matches Stage 5a in shape: FAIL on
+`considers_multiple_hypotheses` (still locks in on a single root cause
+without weighing incast, ECMP imbalance, NIC/host issues, cable
+degradation as alternatives), PASS on every other criterion. One
+material change from Stage 5a: `acknowledges_unknowns` flips PASS in
+the realistic case — the agent uses hedging language ("almost
+certainly", "may have been disabled", "exact numbers depend on
+platform") it didn't reach for in the toy scenario.
+
+**The Stage 5a finding is confirmed under realism**: Stage 5b's first
+skill is *epistemic discipline*, not RoCE-specific recognition. The
+asymmetry-detection capability is in the model. The proactive
+enumeration of alternative mechanism classes is the procedural gap.
 
 ## File Sizes
 
