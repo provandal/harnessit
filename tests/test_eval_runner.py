@@ -485,7 +485,13 @@ async def test_run_eval_visible_failure(exporter):
     assert result.score.overall_pass is False
 
 
-async def test_run_eval_default_run_id_prefix_uses_scenario_name(exporter):
+async def test_run_eval_default_run_id_uses_uuid_prefix_not_scenario_name(exporter):
+    """Default run_id MUST NOT embed the EvalScenario name. The scenario
+    name (e.g. "pfc-storm-realistic-with-counters-tool") contains the
+    underlying substrate scenario name as a substring; the agent sees
+    the substrate's trace_dir on get_fabric_counters responses, so the
+    auto-generated path must not leak. Regression guard for the leak
+    fix on 2026-05-10."""
     session = _FakeSubstrateSession(comparison=None)
     substrate = DoppelgangerClient(session=session)
     model_client, _ = _make_model_client("response: pass")
@@ -495,7 +501,11 @@ async def test_run_eval_default_run_id_prefix_uses_scenario_name(exporter):
         substrate=substrate,
         model_client=model_client,
     )
-    assert result.target_run_id.startswith("test-single-run-")
+    assert "test-single-run" not in result.target_run_id, (
+        f"target_run_id {result.target_run_id!r} embeds the scenario "
+        f"name; the substrate's trace_dir would inherit this and leak"
+    )
+    assert result.target_run_id.startswith("run-")
     assert result.target_run_id.endswith("__target")
 
 

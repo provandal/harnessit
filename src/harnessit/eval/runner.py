@@ -19,6 +19,7 @@ Two scenario shapes:
 from __future__ import annotations
 
 import time
+import uuid
 from typing import Any
 
 from langfuse import get_client, observe
@@ -222,8 +223,17 @@ async def run_eval(
 
 
 def _default_run_id_prefix(scenario_name: str) -> str:
-    safe = scenario_name.replace("/", "-").replace(" ", "-")
-    return f"{safe}-{int(time.time())}"
+    """Generate a UUID-prefixed run_id that does NOT embed the scenario
+    name. The substrate's adapter exposes the trace_dir path on tool
+    responses (the harness needs it to wire compare_runs); embedding
+    the EvalScenario name in the prefix would leak the answer key the
+    same way the Doppelgänger Driver's old auto-run_id pattern did
+    (caught 2026-05-09, fixed 2026-05-10). The scenario_name is
+    accepted but ignored — kept in the signature so future tooling
+    that needs scenario-aware naming on the *operator* side (logs,
+    not agent-facing data) can branch on it."""
+    del scenario_name  # intentionally unused — see docstring
+    return f"run-{uuid.uuid4().hex[:12]}"
 
 
 def format_eval_summary(result: EvalResult) -> str:

@@ -120,6 +120,7 @@ project; the Stage 5a trace lives on the self-hosted Langfuse stack.
 | with-topology-tool | `8c4399b12477966d8ca0ad3fb1a1323d` | Cloud |
 | pfc-storm-with-counters-tool | `668a11072f2a9d51814ce55841fca6ef` | Self-hosted |
 | pfc-storm-realistic-with-counters-tool | `3ef43138e182c9c84d41f35cc9a353b0` | Self-hosted |
+| pfc-storm-realistic-with-counters-tool (SONiC + leak fix) | `c9d82a9829daf2b9e714efe09281206c` | Self-hosted |
 
 ## Stage 5a Closing Test (2026-05-08)
 
@@ -214,6 +215,73 @@ platform") it didn't reach for in the toy scenario.
 skill is *epistemic discipline*, not RoCE-specific recognition. The
 asymmetry-detection capability is in the model. The proactive
 enumeration of alternative mechanism classes is the procedural gap.
+
+## Stage 5a SONiC counter expansion + leak fix (2026-05-10)
+
+[`pfc-storm-realistic-with-counters-tool-sonic.html`](pfc-storm-realistic-with-counters-tool-sonic.html)
+re-runs the same scenario after two corrections Erik flagged on the
+2026-05-09 trace:
+
+1. **Scenario-name leak plugged.** The 2026-05-09 trace caught the
+   agent literally quoting "Scenario tag in the counter dump literally
+   reads `pfc-storm-16h`" — both the `"scenario"` data field and the
+   embedded trace_dir path leaked the answer key. Fix: drop the
+   `scenario` field from `get_fabric_counters` and `run_scenario`
+   responses; switch Driver auto-generated `run_id` from
+   `f"{scenario_name}-{ts}"` to `f"run-{uuid}"`; switch HarnessIT's
+   `_default_run_id_prefix` to a matching UUID pattern. Defense in
+   depth — every layer that builds a run_id avoids the scenario name.
+
+2. **Counter set rebuilt to align with SONiC's per-port operator surface.**
+   The previous 6-field per-port shape (rx/tx packets+bytes, drops,
+   qlen_peak) was too lightweight relative to what SONiC's
+   `show queue counters` + `show queue watermark` +
+   `show priority-group watermark` + `show pfc counters` actually
+   show. Substrate adds a per-priority `QbbPfcQ` trace, extends
+   pfc.txt to 6 columns (with qIndex), and rebuilds counters.txt as
+   per-(switch, port, queue) rows with a new `pg_watermark_bytes`
+   column populated by a periodic sampler walking each switch MMU's
+   `egress_bytes`/`ingress_bytes` arrays. Doppelgänger reshapes the
+   response: each port carries interface state (oper/admin/speed/mtu)
+   plus a `queues: [...]` array of 8 per-priority records (each with
+   rx/tx packets+bytes, dropped_packets, qlen_peak_bytes,
+   pg_watermark_bytes, all four PFC variants, ecn_marks_sent).
+   **Aggregates across queues are deliberately omitted** — Erik's
+   call (2026-05-10): pre-aggregating counts is itself a
+   tool-mediated convenience and forcing the agent to sum queues
+   itself preserves naked-LLM measurement integrity for Stage 5b. For
+   the default 4-leaf 1-spine 4-host topology that's 24 enumerated
+   ports × 8 queues = 192 queue records per response.
+
+**Result: verdict shape flipped on the same scenario.** Trace
+`c9d82a9829daf2b9e714efe09281206c`. Naked Opus 4.7 still nails the
+diagnosis — but where the 2026-05-09 trace had FAIL on
+`considers_multiple_hypotheses` and PASS on `acknowledges_unknowns`,
+the 2026-05-10 SONiC trace inverts: PASS on
+`considers_multiple_hypotheses` (agent explicitly rules out path
+asymmetry, slow links, and wiring issues by reading the topology +
+per-queue counter set), FAIL on `acknowledges_unknowns` (high-confidence
+single-root-cause assertion without hedging or proposed verification).
+
+The agent's response cites "queue 3" (the lossless RoCE priority)
+repeatedly, reads both watermark classes (egress `qlen_peak_bytes`
+vs ingress `pg_watermark_bytes`) as separate signals, identifies the
+storm port to leaf+if_index granularity (`leaf 16 port 5 = uplink to
+spine`, ECN marks zero everywhere across 24 ports × 8 queues), and
+explains the per-priority isolation. Zero references to "pfc-storm"
+anywhere in the response — leak confirmed plugged.
+
+**Counter-intuitive finding**: the richer telemetry made the diagnosis
+*tighter*, not more uncertain. With 192 queue records the agent had
+enough evidence to rule out alternatives confidently — passing
+multi-hyp by elimination rather than by hedging. **This sharpens
+Stage 5b's skill thesis further**: not "enumerate alternatives"
+(rich enough data + naked model already does that) but "calibrate
+confidence to the underlying evidence quality even when evidence is
+overwhelming." The first skill now reads as *Confidence Calibration*:
+after naming a root cause, state the strongest supporting evidence,
+name the single observation that would falsify it, propose a fallback
+diagnosis, hedge platform-specific values explicitly.
 
 ## File Sizes
 
