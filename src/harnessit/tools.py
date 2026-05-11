@@ -78,6 +78,29 @@ GET_FABRIC_COUNTERS_SCHEMA: dict[str, Any] = {
     },
 }
 
+GET_FLOW_RECORDS_SCHEMA: dict[str, Any] = {
+    "name": "get_flow_records",
+    "description": (
+        "Return per-flow completion records for the RDMA fabric you "
+        "are investigating. Each record carries the flow's 5-tuple "
+        "(sip, dip, sport, dport), completion status, measured FCT in "
+        "nanoseconds, the standalone (uncongested) FCT for slowdown "
+        "comparison, the slowdown ratio, actual size in bytes, and "
+        "actual start time in nanoseconds. The response also includes "
+        "a `summary` with counts by status (total / completed / "
+        "incomplete) and the FCT distribution (min / p50 / p90 / p99 / "
+        "p999 / max / mean). Useful when triaging fabric symptoms that "
+        "manifest at the flow boundary: incomplete flow counts, "
+        "elevated FCT tails, bimodal distributions, or slowdown "
+        "patterns across the 5-tuple space. No arguments."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+    },
+}
+
 
 @dataclass(frozen=True)
 class ToolError:
@@ -117,7 +140,11 @@ class Tools:
     @property
     def schemas(self) -> list[dict[str, Any]]:
         """Anthropic tool schemas for the ``tools=`` parameter of messages.create."""
-        return [GET_TOPOLOGY_SCHEMA, GET_FABRIC_COUNTERS_SCHEMA]
+        return [
+            GET_TOPOLOGY_SCHEMA,
+            GET_FABRIC_COUNTERS_SCHEMA,
+            GET_FLOW_RECORDS_SCHEMA,
+        ]
 
     async def execute(self, name: str, args: dict[str, Any]) -> Any:
         """Dispatch a tool_use block to the matching executor.
@@ -132,6 +159,8 @@ class Tools:
             return await self._get_topology(args)
         if name == "get_fabric_counters":
             return await self._get_fabric_counters(args)
+        if name == "get_flow_records":
+            return await self._get_flow_records(args)
         return ToolError(
             tool=name,
             message=(
@@ -196,9 +225,35 @@ class Tools:
         )
         return data
 
+    @observe(
+        name="harnessit.tools.get_flow_records",
+        as_type="span",
+        capture_input=False,
+        capture_output=False,
+    )
+    async def _get_flow_records(self, args: dict[str, Any]) -> dict[str, Any]:
+        """Forward to ``DoppelgangerClient.get_flow_records`` with the bound scenario."""
+        envelope = await self._substrate.get_flow_records_envelope(self._scenario_name)
+        data = envelope["data"]
+        get_client().update_current_span(
+            input={
+                "agent_args": args,
+                "bound_scenario": self._scenario_name,
+            },
+            output=data,
+            metadata={
+                "source": envelope.get("source"),
+                "confidence": envelope.get("confidence"),
+                "staleness_class": envelope.get("staleness_class"),
+                "observed_at_ns": envelope.get("observed_at_ns"),
+            },
+        )
+        return data
+
 
 __all__ = [
     "GET_FABRIC_COUNTERS_SCHEMA",
+    "GET_FLOW_RECORDS_SCHEMA",
     "GET_TOPOLOGY_SCHEMA",
     "ToolError",
     "Tools",

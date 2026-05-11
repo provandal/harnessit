@@ -264,18 +264,19 @@ def test_envelope_metadata_defaults_for_missing_fields():
 # ---------- Live MCP test (gated) ----------
 
 @pytest.mark.requires_substrate
-async def test_live_doppelganger_adapter_exposes_five_tools():
+async def test_live_doppelganger_adapter_exposes_expected_tools():
     """Spawn the real ``doppelganger-adapter`` subprocess via MCP stdio.
 
     Verifies the Stage-1 follow-up "real MCP-client round-trip testing"
     that was deferred from Doppelgänger's stage 1 closeout. Doesn't run
     a scenario, so doesn't need the Docker substrate image — only the
     doppelganger Python package. Stage 3 added ``get_topology``;
-    Stage 5a added ``get_fabric_counters``.
+    Stage 5a added ``get_fabric_counters``; step 2a (2026-05-11) added
+    ``get_flow_records``.
     """
     expected = {
         "list_scenarios", "run_scenario", "get_topology",
-        "get_fabric_counters", "compare_runs",
+        "get_fabric_counters", "get_flow_records", "compare_runs",
     }
     async with DoppelgangerClient.connect() as client:
         tools = set(await client.list_tools())

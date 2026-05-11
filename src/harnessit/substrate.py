@@ -202,6 +202,42 @@ class DoppelgangerClient:
             args["run_id"] = run_id
         return await self._call("get_fabric_counters", args)
 
+    async def get_flow_records(
+        self,
+        name: str,
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Run a scenario and return per-flow completion records + summary.
+
+        Each record carries the flow's 5-tuple (sip/dip/sport/dport),
+        completion status, FCT (measured + standalone for slowdown
+        comparison), and actual size/start. ``data.summary`` repeats the
+        counts-by-status and FCT distribution from ``run_scenario``;
+        surfacing it here lets the agent reason about distribution
+        shape without iterating over the full ``flows`` array.
+
+        Today the substrate's ``fct.txt`` only emits *completed* flows
+        (Doppelgänger v0.2 §4.2); silent-drops faults manifest in the
+        completion count and the FCT distribution shape rather than in
+        per-flow incomplete records.
+        """
+        args: dict[str, Any] = {"name": name}
+        if run_id is not None:
+            args["run_id"] = run_id
+        envelope = await self._call("get_flow_records", args)
+        return envelope["data"]
+
+    async def get_flow_records_envelope(
+        self,
+        name: str,
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Same as ``get_flow_records`` but returns the full envelope."""
+        args: dict[str, Any] = {"name": name}
+        if run_id is not None:
+            args["run_id"] = run_id
+        return await self._call("get_flow_records", args)
+
     async def _call(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         result = await self._session.call_tool(tool_name, arguments=arguments)
         if getattr(result, "isError", False):
