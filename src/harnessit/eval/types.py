@@ -20,6 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+from harnessit.eval.correctness import CorrectnessJudgment
 from harnessit.eval.judge import Judgment
 from harnessit.eval.scoring import Score
 from harnessit.model import Completion, ToolCall
@@ -105,3 +106,11 @@ class EvalResult:
     keyword_score: Score | None = None
     llm_judgment: Judgment | None = None
     judge_error: str | None = None
+    # 2026-05-11 sweep finding: rubric (keyword + LLM) does not correlate
+    # with diagnosis correctness. ``correctness_judgment`` is an
+    # orthogonal axis that grades the agent's stated root cause against
+    # substrate ground truth. None when no correctness judge was
+    # provided OR when the substrate didn't expose ground truth for the
+    # target scenario; ``correctness_error`` populates on judge failure.
+    correctness_judgment: CorrectnessJudgment | None = None
+    correctness_error: str | None = None

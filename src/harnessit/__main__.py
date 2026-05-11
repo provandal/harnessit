@@ -21,17 +21,31 @@ import argparse
 import asyncio
 import sys
 
+# Force UTF-8 on stdout. Judge rationales routinely include unicode
+# arrows / glyphs that crash cp1252 on Windows consoles when piped
+# through tee. Failure (e.g., stdout is a detached file handle on some
+# platforms) is non-fatal.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+except (AttributeError, OSError):
+    pass
+
 from harnessit.config import load_settings
 from harnessit.eval import EvalResult
+from harnessit.eval.correctness import CorrectnessJudge
 from harnessit.eval.judge import Judge
 from harnessit.eval.runner import format_eval_summary, run_eval
 from harnessit.model import ModelClient
 from harnessit.scenarios import (
+    asymmetric_path_with_counters_tool,
+    hash_polarization_with_counters_tool,
     microburst_symptom_only,
+    microburst_with_counters_tool,
     microburst_with_topology,
     microburst_with_topology_tool,
     pfc_storm_realistic_with_counters_tool,
     pfc_storm_with_counters_tool,
+    silent_drops_with_counters_tool,
 )
 from harnessit.substrate import DoppelgangerClient
 from harnessit.tracing import flush_langfuse, init_langfuse
@@ -40,18 +54,32 @@ SCENARIO_FACTORIES = {
     "microburst-symptom-only": microburst_symptom_only,
     "microburst-with-topology": microburst_with_topology,
     "microburst-with-topology-tool": microburst_with_topology_tool,
+    "microburst-with-counters-tool": microburst_with_counters_tool,
     "pfc-storm-with-counters-tool": pfc_storm_with_counters_tool,
     "pfc-storm-realistic-with-counters-tool": pfc_storm_realistic_with_counters_tool,
+    "asymmetric-path-with-counters-tool": asymmetric_path_with_counters_tool,
+    "hash-polarization-with-counters-tool": hash_polarization_with_counters_tool,
+    "silent-drops-with-counters-tool": silent_drops_with_counters_tool,
 }
 DEFAULT_SCENARIO = "microburst-symptom-only"
 
 
-async def _run(scenario_name: str, *, use_judge: bool, judge_model: str | None) -> EvalResult:
+async def _run(
+    scenario_name: str,
+    *,
+    use_judge: bool,
+    use_correctness: bool,
+    judge_model: str | None,
+) -> EvalResult:
     settings = load_settings()
     init_langfuse(settings)
     scenario = SCENARIO_FACTORIES[scenario_name]()
     judge = (
         Judge.from_settings(settings, model=judge_model) if use_judge else None
+    )
+    correctness_judge = (
+        CorrectnessJudge.from_settings(settings, model=judge_model)
+        if use_correctness else None
     )
     async with DoppelgangerClient.connect() as substrate:
         model_client = ModelClient.from_settings(settings)
@@ -60,6 +88,7 @@ async def _run(scenario_name: str, *, use_judge: bool, judge_model: str | None) 
             substrate=substrate,
             model_client=model_client,
             judge=judge,
+            correctness_judge=correctness_judge,
         )
     flush_langfuse()
     return result
@@ -87,17 +116,31 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--no-correctness",
+        action="store_true",
+        help=(
+            "Disable diagnosis-correctness LLM scoring (orthogonal axis "
+            "to the rubric). The rubric runs independently; this flag "
+            "only affects correctness."
+        ),
+    )
+    parser.add_argument(
         "--judge-model",
         default=None,
         help=(
             "Override the judge model id (default: claude-opus-4-7). "
-            "Ignored when --no-judge is set."
+            "Applied to both the rubric judge and the correctness judge."
         ),
     )
     args = parser.parse_args(argv)
 
     result = asyncio.run(
-        _run(args.scenario, use_judge=not args.no_judge, judge_model=args.judge_model)
+        _run(
+            args.scenario,
+            use_judge=not args.no_judge,
+            use_correctness=not args.no_correctness,
+            judge_model=args.judge_model,
+        )
     )
     print(format_eval_summary(result))
     return 0 if result.score.overall_pass else 1

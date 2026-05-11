@@ -67,6 +67,23 @@ TOPOLOGY_PREAMBLE = (
     "  - PFC is configured but its trigger threshold is conservative.\n"
 )
 
+# Help-ticket for the 2026-05-11 capability-envelope sweep variant. The
+# emphasis is the *bursty character* of the symptom (sub-second collapse,
+# self-recovery), not a steady step-time anchor — the Stage 3 ticket's
+# "step time up 1.5x" framing already proved tractable when the agent had
+# topology in hand, and the sweep is interested in whether richer
+# telemetry (counters tool) supports recognition when the symptom is
+# described in the noisier voice an on-call would hear from the
+# application team. No microburst/incast/PFC/ECMP vocabulary.
+WITH_COUNTERS_USER_TICKET = (
+    "Hey network team — we're getting reports of brief throughput "
+    "collapses on training jobs targeting host 11.0.0.1. Iteration time "
+    "spikes for a few hundred milliseconds at a stretch and then "
+    "recovers on its own; application logs blame the network, our "
+    "network team initially read it as a workload pattern. Started "
+    "showing up this morning around 09:14 UTC. Can you take a look?"
+)
+
 
 def _build_symptom_only_prompt(_context: EvalContext) -> str:
     return USER_TICKET + "\n"
@@ -74,6 +91,10 @@ def _build_symptom_only_prompt(_context: EvalContext) -> str:
 
 def _build_with_topology_prompt(_context: EvalContext) -> str:
     return TOPOLOGY_PREAMBLE + "\n" + USER_TICKET + "\n"
+
+
+def _build_with_counters_prompt(_context: EvalContext) -> str:
+    return WITH_COUNTERS_USER_TICKET + "\n"
 
 
 def _score(context: EvalContext, completion: Completion) -> Score:
@@ -171,12 +192,53 @@ def microburst_with_topology_tool() -> EvalScenario:
     )
 
 
+def microburst_with_counters_tool() -> EvalScenario:
+    """2026-05-11 capability-envelope sweep: microburst + topology +
+    fabric counters tools, no skill.
+
+    Stage 3's `microburst_with_topology_tool` already showed that the
+    agent passes when given the topology tool alone. This variant pairs
+    the same fault with the full Stage 5a tool surface (topology +
+    counters) and a different help-ticket framing — the bursty character
+    of the symptom rather than the steady step-time anchor — to make
+    the sweep's `microburst-with-counters-tool` row comparable to the
+    other three sweep rows (`hash-polarization`, `asymmetric-path`,
+    `silent-drops`) which all use the same harness configuration.
+
+    Pre-registered prediction (per
+    ``project_capability_envelope_sweep_2026_05_11.md``): EASY — Stage 3
+    already passed with topology only; adding counters should not regress
+    diagnosis quality. If the bursty framing throws the agent off (e.g.,
+    it chases application-side hypotheses without consulting the counter
+    asymmetry), that's a finding about how prompt framing interacts with
+    tool usage.
+    """
+    return EvalScenario(
+        name="microburst-with-counters-tool",
+        description=(
+            "Symptom + tools (topology + fabric counters), no skill. "
+            "Microburst substrate, bursty-framing help-ticket. Sweep row "
+            "comparable to hash-polarization, asymmetric-path, silent-drops "
+            "under the same harness configuration."
+        ),
+        system_prompt=SYSTEM_PROMPT,
+        target_scenario=TARGET_SCENARIO,
+        baseline_scenario=None,
+        build_user_prompt=_build_with_counters_prompt,
+        score=_score,
+        expected_to_pass=False,
+        uses_tools=True,
+    )
+
+
 __all__ = [
     "SYSTEM_PROMPT",
     "TARGET_SCENARIO",
     "TOPOLOGY_PREAMBLE",
     "USER_TICKET",
+    "WITH_COUNTERS_USER_TICKET",
     "microburst_symptom_only",
     "microburst_with_topology",
     "microburst_with_topology_tool",
+    "microburst_with_counters_tool",
 ]

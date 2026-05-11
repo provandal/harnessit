@@ -32,11 +32,13 @@ if TYPE_CHECKING:
     # Avoid a cycle: harnessit.eval.judge imports JUDGE_SPAN_NAME from
     # this module (re-exports it for callers); we only need the Judge /
     # Judgment types at type-check time.
+    from harnessit.eval.correctness import CorrectnessJudge, CorrectnessJudgment
     from harnessit.eval.judge import Judge, Judgment
 
 GENERATION_SPAN_NAME = "harnessit.naked_model.complete"
 TOOL_USE_GENERATION_SPAN_NAME = "harnessit.tool_use.complete"
 JUDGE_SPAN_NAME = "harnessit.eval.judge"
+CORRECTNESS_SPAN_NAME = "harnessit.eval.correctness"
 
 
 def init_langfuse(
@@ -224,6 +226,61 @@ async def traced_judge_score(
                 {"name": c.name, "passed": c.passed, "rationale": c.rationale}
                 for c in judgment.criteria
             ],
+        },
+        metadata=metadata,
+    )
+    return judgment
+
+
+@observe(
+    as_type="span",
+    name=CORRECTNESS_SPAN_NAME,
+    capture_input=False,
+    capture_output=False,
+)
+async def traced_correctness_score(
+    correctness_judge: "CorrectnessJudge",
+    *,
+    system_prompt: str,
+    user_prompt: str,
+    agent_response: str,
+    intended_symptom: str,
+    root_cause: str,
+    scenario_name: str | None = None,
+) -> "CorrectnessJudgment":
+    """Correctness-judge call wrapped in a Langfuse span.
+
+    Captures the verdict, agent_diagnosis_summary, and rationale on the
+    span output so the trajectory viewer can render correctness
+    reasoning alongside the rubric. Failures bubble up as
+    `CorrectnessJudgeError` for the runner to catch; rubric scoring is
+    unaffected.
+    """
+    judgment = await correctness_judge.score(
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        agent_response=agent_response,
+        intended_symptom=intended_symptom,
+        root_cause=root_cause,
+    )
+
+    metadata: dict[str, Any] = {
+        "judge_model": judgment.judge_model,
+    }
+    if scenario_name is not None:
+        metadata["scenario_name"] = scenario_name
+
+    get_client().update_current_span(
+        input={
+            "judge_model": correctness_judge.model,
+            "agent_response_length": len(agent_response),
+            "ground_truth_root_cause": root_cause,
+            "ground_truth_intended_symptom": intended_symptom,
+        },
+        output={
+            "verdict": judgment.verdict.value,
+            "agent_diagnosis_summary": judgment.agent_diagnosis_summary,
+            "rationale": judgment.rationale,
         },
         metadata=metadata,
     )

@@ -24,6 +24,11 @@ from typing import Any
 
 from langfuse import get_client, observe
 
+from harnessit.eval.correctness import (
+    CorrectnessJudge,
+    CorrectnessJudgeError,
+    CorrectnessJudgment,
+)
 from harnessit.eval.judge import Judge, JudgeError, Judgment
 from harnessit.eval.types import EvalContext, EvalResult, EvalScenario
 from harnessit.model import Completion, ModelClient
@@ -32,11 +37,13 @@ from harnessit.tools import Tools
 from harnessit.tracing import (
     traced_complete,
     traced_complete_with_tools,
+    traced_correctness_score,
     traced_judge_score,
 )
 
 EVAL_SPAN_NAME = "harnessit.eval.run"
 SCORE_NAME = "harnessit.eval.overall_pass"
+CORRECTNESS_SCORE_NAME = "harnessit.eval.diagnosis_correctness"
 
 
 @observe(name=EVAL_SPAN_NAME, capture_input=False, capture_output=False)
@@ -48,21 +55,52 @@ async def run_eval(
     run_id_prefix: str | None = None,
     scenario_metadata: dict[str, Any] | None = None,
     judge: Judge | None = None,
+    correctness_judge: CorrectnessJudge | None = None,
 ) -> EvalResult:
     """Run one scenario end-to-end. Returns the structured result.
 
     ``scenario_metadata`` is propagated into the EvalContext so scorers
     can access scenario-author intent (intended_symptom, root_cause).
-    Defaults to an empty dict; the per-scenario module supplies it.
+    Defaults to an empty dict; if ``correctness_judge`` is provided, the
+    runner fetches ground truth via ``substrate.list_scenarios()`` at
+    run start and merges it into scenario_metadata under the
+    ``ground_truth_intended_symptom`` / ``ground_truth_root_cause`` keys.
 
-    ``judge``: optional LLM-as-judge. When provided, the runner scores
-    the response with both the keyword scorer (always) and the judge,
-    using the judge's verdict as the primary score (with fallback to
-    keyword on judge failure). Both scores are preserved on the
-    EvalResult for the keyword-vs-LLM calibration table.
+    ``judge``: optional LLM-as-judge for the 5-criterion triage rubric.
+    When provided, the runner scores the response with both the keyword
+    scorer (always) and the rubric judge, using the judge's verdict as
+    the primary score (with fallback to keyword on judge failure).
+
+    ``correctness_judge``: optional LLM-as-judge for diagnosis
+    correctness. Orthogonal to the rubric. When provided AND ground
+    truth is available, the runner grades the agent's stated root cause
+    against the substrate's intended_symptom + root_cause. Verdict is
+    one of CORRECT / WRONG / NO_DIAGNOSIS. Failure here is non-fatal —
+    the rubric run continues independently.
     """
     prefix = run_id_prefix or _default_run_id_prefix(scenario.name)
     is_paired = scenario.baseline_scenario is not None
+
+    # Fetch ground truth at run start so it's available for the
+    # correctness judge later. Cheap (one MCP call) and only done when
+    # correctness scoring is on. Empty strings when the scenario isn't
+    # in the substrate registry — correctness judging will short-circuit.
+    ground_truth_intended_symptom = ""
+    ground_truth_root_cause = ""
+    if correctness_judge is not None:
+        try:
+            registry = await substrate.list_scenarios()
+            for entry in registry:
+                if entry.get("name") == scenario.target_scenario:
+                    ground_truth_intended_symptom = str(
+                        entry.get("intended_symptom") or ""
+                    )
+                    ground_truth_root_cause = str(entry.get("root_cause") or "")
+                    break
+        except Exception:
+            # Non-fatal: correctness will short-circuit on missing ground
+            # truth, the rubric run is unaffected.
+            pass
 
     baseline_run: dict[str, Any] | None = None
     comparison: dict[str, Any] | None = None
@@ -86,11 +124,20 @@ async def run_eval(
             baseline_run["trace_dir"], target_run["trace_dir"]
         )
 
+    merged_metadata = dict(scenario_metadata or {})
+    if ground_truth_intended_symptom:
+        merged_metadata.setdefault(
+            "ground_truth_intended_symptom", ground_truth_intended_symptom
+        )
+    if ground_truth_root_cause:
+        merged_metadata.setdefault(
+            "ground_truth_root_cause", ground_truth_root_cause
+        )
     context = EvalContext(
         target_run=target_run,
         baseline_run=baseline_run,
         comparison=comparison,
-        scenario_metadata=dict(scenario_metadata or {}),
+        scenario_metadata=merged_metadata,
     )
 
     user_prompt = scenario.build_user_prompt(context)
@@ -149,6 +196,28 @@ async def run_eval(
         llm_judgment.to_score() if llm_judgment is not None else keyword_score
     )
 
+    correctness_judgment: CorrectnessJudgment | None = None
+    correctness_error: str | None = None
+    if correctness_judge is not None:
+        if not (ground_truth_root_cause and ground_truth_intended_symptom):
+            correctness_error = (
+                "ground truth not available from substrate.list_scenarios() "
+                f"for target_scenario={scenario.target_scenario!r}"
+            )
+        else:
+            try:
+                correctness_judgment = await traced_correctness_score(
+                    correctness_judge,
+                    system_prompt=scenario.system_prompt,
+                    user_prompt=user_prompt,
+                    agent_response=completion.text,
+                    intended_symptom=ground_truth_intended_symptom,
+                    root_cause=ground_truth_root_cause,
+                    scenario_name=scenario.name,
+                )
+            except CorrectnessJudgeError as exc:
+                correctness_error = str(exc)
+
     client = get_client()
     span_input: dict[str, Any] = {
         "scenario": scenario.name,
@@ -170,6 +239,10 @@ async def run_eval(
         metadata["baseline_run_id"] = baseline_run["run_id"]
     if judge_error is not None:
         metadata["judge_error"] = judge_error
+    if correctness_error is not None:
+        metadata["correctness_error"] = correctness_error
+    if correctness_judgment is not None:
+        metadata["correctness_verdict"] = correctness_judgment.verdict.value
 
     span_output: dict[str, Any] = {
         "overall_pass": primary_score.overall_pass,
@@ -189,6 +262,13 @@ async def run_eval(
                 for c in llm_judgment.criteria
             ],
         }
+    if correctness_judgment is not None:
+        span_output["correctness_judgment"] = {
+            "verdict": correctness_judgment.verdict.value,
+            "agent_diagnosis_summary": correctness_judgment.agent_diagnosis_summary,
+            "rationale": correctness_judgment.rationale,
+            "judge_model": correctness_judgment.judge_model,
+        }
 
     client.update_current_span(
         input=span_input,
@@ -200,6 +280,27 @@ async def run_eval(
         value=1.0 if primary_score.overall_pass else 0.0,
         comment=primary_score.rationale,
     )
+    if correctness_judgment is not None:
+        # Separate Langfuse trace score so the diagnosis-correctness axis
+        # is queryable independently of the rubric axis. Score value:
+        # 1.0 for CORRECT, 0.0 for WRONG, 0.5 for NO_DIAGNOSIS — the mid
+        # value reflects that NO_DIAGNOSIS is a distinct epistemic
+        # stance, not a half-failure; readers should consult the verdict
+        # string (in the comment) rather than treating the numeric as
+        # ordinal.
+        verdict_value = {
+            "CORRECT": 1.0,
+            "NO_DIAGNOSIS": 0.5,
+            "WRONG": 0.0,
+        }.get(correctness_judgment.verdict.value, 0.0)
+        client.score_current_trace(
+            name=CORRECTNESS_SCORE_NAME,
+            value=verdict_value,
+            comment=(
+                f"{correctness_judgment.verdict.value}: "
+                f"{correctness_judgment.agent_diagnosis_summary}"
+            ),
+        )
 
     trace_id = client.get_current_trace_id()
 
@@ -219,6 +320,8 @@ async def run_eval(
         keyword_score=keyword_score,
         llm_judgment=llm_judgment,
         judge_error=judge_error,
+        correctness_judgment=correctness_judgment,
+        correctness_error=correctness_error,
     )
 
 
@@ -312,6 +415,16 @@ def format_eval_summary(result: EvalResult) -> str:
         f"primary_overall_pass: {score.overall_pass} "
         f"({'LLM judge' if result.llm_judgment is not None else 'keyword fallback'})"
     )
+    if result.correctness_judgment is not None:
+        cj = result.correctness_judgment
+        lines.append("")
+        lines.append("--- diagnosis correctness (orthogonal to rubric) ---")
+        lines.append(f"  verdict: {cj.verdict.value}")
+        lines.append(f"  agent's stated diagnosis: {cj.agent_diagnosis_summary}")
+        lines.append(f"  rationale: {cj.rationale}")
+    elif result.correctness_error is not None:
+        lines.append("")
+        lines.append(f"--- diagnosis correctness: SKIPPED ({result.correctness_error}) ---")
     if result.langfuse_trace_id:
         lines.append(f"langfuse_trace_id: {result.langfuse_trace_id}")
     return "\n".join(lines)
