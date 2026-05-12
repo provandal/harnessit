@@ -51,10 +51,30 @@ Five-axis design choices:
    SPECIFIC ("host 16 is sick") from CLASS ("uniform corruption
    with traffic concentration on host 16").
 
-The skill body is kept compact (~250 words). Larger skill bodies
-crowd the agent's context for tool data and don't measurably improve
-adherence in pilot tests (TBD; this skill's first measurement
-campaign is the 4-row baseline A/B).
+v0.2 changes (2026-05-12, post first-skill A/B):
+
+6. **Fabric-health summary (conditional)** — addresses the
+   observation that NO_DIAGNOSIS responses gave SREs nothing
+   actionable. When the confidence band is the refusal or
+   consistent-with-data form, the skill mandates a brief summary
+   of what IS clear about fabric state, so the SRE has a partial
+   picture alongside the refusal.
+
+**Confidence-level narrowing**: v0.1 A/B showed the agent reaching
+for "evidence does not support" when the user's symptom magnitude
+didn't match the trace, even with visible fabric signal (hash-
+polarization trace `aa7a1818…` dismissed a real 1.56x spine
+imbalance as "fairly even, no hot spine"). v0.2 narrows the refusal
+band to "fabric is genuinely quiescent" — concrete checklist (no
+PFC, no ECN, no drops, no asymmetry, no PHY drops) — and routes the
+symptom-mismatch case to "consistent with data but not yet
+confirmed" instead.
+
+The skill body is kept compact (~300 words at v0.2, up from ~250
+at v0.1). Larger skill bodies crowd the agent's context for tool
+data; v0.2's growth is justified by the operational utility of the
+fabric-health summary axis observed in v0.1 traces where it
+appeared organically.
 """
 
 from __future__ import annotations
@@ -63,13 +83,13 @@ from dataclasses import dataclass
 
 
 CALIBRATED_COMMITMENT_NAME = "calibrated-commitment"
-CALIBRATED_COMMITMENT_VERSION = "0.1"
+CALIBRATED_COMMITMENT_VERSION = "0.2"
 
 CALIBRATED_COMMITMENT_BODY = """\
-## Skill: Calibrated Commitment
+## Skill: Calibrated Commitment (v0.2)
 
 When formulating your diagnosis at the end of an investigation, make
-commitment confidence explicit. Your response should make these five
+commitment confidence explicit. Your response should make these six
 axes identifiable, in whatever order suits the flow of your reasoning:
 
 1. **Verdict.** Name the mechanism class and localization in the form
@@ -77,14 +97,26 @@ axes identifiable, in whatever order suits the flow of your reasoning:
 
 2. **Confidence level.** One of:
    - *high confidence* — evidence is overwhelming; multiple signals
-     corroborate; no contradictions in the data;
+     corroborate; no contradictions in the data.
    - *most likely* — evidence supports this hypothesis but at least
-     one alternative is internally consistent;
-   - *consistent with data but not yet confirmed* — limited evidence;
-     the diagnosis fits but other mechanism classes fit equally well;
-   - *evidence does not support a fabric-side diagnosis* — explicit
-     refusal to commit (operationally: bounce to a different team or
-     ask for more data).
+     one alternative is internally consistent.
+   - *consistent with data but not yet confirmed* — visible signal in
+     the data is consistent with a diagnosis (e.g., uneven per-port
+     counters consistent with ECMP polarization; pause/resume pattern
+     consistent with isolated incast). Use this band when (a) the
+     user's symptom magnitude or shape doesn't exactly match the
+     trace, or (b) multiple mechanism classes fit the same data.
+     Don't dismiss visible signal — articulate that the diagnosis is
+     supported by fabric data but not fully confirmed against the
+     user's stated symptom.
+   - *evidence does not support a fabric-side diagnosis* — use ONLY
+     when the fabric is genuinely quiescent. Concretely: no PFC, no
+     ECN marks, no drops, no queue buildup, no notable per-port
+     asymmetry, no host PHY drops. This is the "fabric isn't doing
+     anything wrong" case. Don't reach for this band just because
+     the user's symptom magnitude differs from the trace — that's
+     what the symptom-vs-data axis (4) is for, used alongside the
+     "consistent with data" band above.
 
 3. **Falsification conditions.** Name 1-2 specific observations that
    would change your verdict. E.g., "if host X's PHY drops were
@@ -96,7 +128,9 @@ axes identifiable, in whatever order suits the flow of your reasoning:
    doesn't match what you see in the data, say so explicitly. Don't
    paper over the mismatch — "you described X but the trace shows Y;
    either the trace is from a different window, or the cause is
-   upstream of what these tools can measure."
+   upstream of what these tools can measure." Calling out the
+   mismatch is a hedge, not a refusal — pair it with the
+   "consistent with data" band when there IS visible signal.
 
 5. **Localization caveat.** When committing to a specific entity
    (host, port, link), note whether the data supports SPECIFIC vs
@@ -104,9 +138,24 @@ axes identifiable, in whatever order suits the flow of your reasoning:
    of PHY drops, but this could also be uniform corruption with
    traffic concentration on host 16."
 
+6. **Fabric-health summary** (CONDITIONAL — include only when your
+   confidence level is *evidence does not support* or *consistent
+   with data but not yet confirmed*). Briefly note what IS clear
+   about fabric state: which subsystems show no anomalies, which (if
+   any) show worth-noting-but-not-diagnostic signals, and what the
+   SRE can rule out from this trace even without a committed
+   diagnosis. Example: "What's clear from this trace: PFC clean
+   across all switches; ECN marks within normal incast bounds; no
+   host PHY drops above noise. What's worth noting but not
+   diagnostic: leaf-0's uplinks show ~1.6x packet imbalance, real
+   but small-sample." A NO_DIAGNOSIS response that gives the SRE
+   nothing actionable is operationally weaker than one that provides
+   a partial fabric picture alongside the refusal.
+
 Aim for honest commitment: commit hard when evidence supports it,
-hedge specifically when it doesn't, and refuse explicitly when the
-evidence isn't there.
+hedge specifically when symptom-vs-data ambiguity exists alongside
+visible signal, and refuse explicitly only when the fabric itself
+is quiescent.
 """
 
 

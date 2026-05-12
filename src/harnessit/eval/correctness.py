@@ -1,4 +1,4 @@
-"""Diagnosis-correctness LLM scorer — orthogonal axis to the 5-criterion rubric.
+"""Diagnosis-correctness LLM scorer — v0.2 operational-stance grading.
 
 Background. The 2026-05-11 capability-envelope sweep (4 fault classes +
 baseline) found that the 5-criterion rubric (multi-hyp / telemetry /
@@ -12,28 +12,43 @@ This module adds that missing axis as a separate LLM judge. The rubric
 judge and this judge are deliberately orthogonal — the rubric never
 sees ground truth (mirrored from production reality where the agent
 doesn't know the answer), while this judge sees ground truth (`Scenario.
-root_cause` + `Scenario.intended_symptom`) and grades the response on a
-single question: did the agent commit to the right mechanism class?
+root_cause` + `Scenario.intended_symptom`) and grades the response.
+
+**v0.2 grading question (2026-05-12, post Calibrated Commitment skill
+A/B)**: would an SRE who reads this response and follows its
+recommendations reach the ground-truth fault class? The v0.1 strict
+verdict-matching question ("does the agent's stated diagnosis name the
+same mechanism class as ground truth?") was mis-grading responses
+whose verification/recommendation steps would lead an SRE to the right
+answer even when the verbal verdict was more specific or less
+committal than strict matching expected.
+
+Offline validation of v0.2 against the 4 with-skill A/B traces
+(`sweep-logs-2026-05-12-skill/operational_judge_v02.py`): v0.1 strict
+gave 1 CORRECT + 2 NO_DIAGNOSIS + 1 WRONG; v0.2 operational gives
+3 CORRECT + 1 WRONG. Three of the four shifts moved toward CORRECT
+because the agent's recommended verification steps would actually lead
+to the ground-truth diagnosis (e.g., silent-drops "verify drops-per-
+million before dispatching cable swap" reveals uniform corruption;
+microburst "recapture during incident window" surfaces the incast
+pattern). The one hash-polarization WRONG is a true skill overshoot
+(agent dismissed visible per-port signal and pointed away from fabric).
 
 Three verdicts:
 
-* **CORRECT** — the response commits to a diagnosis in the same
-  mechanism class as the ground truth. Wording can differ; substantive
-  equivalence is the question (an SRE reading the response would arrive
-  at the same operational next step as one reading the ground truth).
-* **WRONG** — the response commits to a different mechanism class.
-* **NO_DIAGNOSIS** — the response did not commit to a specific
-  mechanism class. The agent either explicitly declined ("bounce to app
-  team", "I'd need more data"), enumerated possibilities without
-  committing, or hedged the conclusion. NOT a synonym for WRONG — a
-  distinct epistemic stance.
-
-The NO_DIAGNOSIS category was load-bearing in the 2026-05-11 sweep:
-microburst's "fabric counters don't support a network cause; recommend
-bouncing to app team" is epistemically correct given the (weak) counter
-signal the substrate produced. Calling that WRONG would penalize honest
-data-grounded refusal. NO_DIAGNOSIS captures the stance cleanly without
-forcing the judge into a false binary.
+* **CORRECT** — operational stance (verdict + recommendations +
+  verification steps) would lead an SRE to the ground-truth fault
+  class. Includes responses where the verdict is over-specific but
+  recommended verification catches the over-specificity, and
+  responses where the verdict refuses to commit but the recommended
+  next step gathers data leading to ground truth.
+* **WRONG** — operational stance would lead an SRE *away* from the
+  ground-truth fault class (wrong-subsystem investigation, dismissed
+  visible signal pointing elsewhere).
+* **NO_DIAGNOSIS** — operational stance is "gather more data /
+  consult another team" WITHOUT directing investigation toward or
+  away from the ground-truth fault class. The honest-refusal case
+  where the operational outcome is neutral.
 
 Use::
 
@@ -47,9 +62,9 @@ Use::
     )
 
 Tool calls are deliberately NOT passed to this judge. Correctness is
-about the agent's final stated diagnosis, not the trajectory; the
-trajectory is what the rubric measures. Keeping the prompts disjoint
-makes both axes legible in isolation.
+about the agent's final stated stance, not the investigation trajectory;
+the trajectory is what the rubric measures. Keeping the prompts
+disjoint makes both axes legible in isolation.
 """
 
 from __future__ import annotations
@@ -148,41 +163,68 @@ SUBMIT_CORRECTNESS_TOOL: dict[str, Any] = {
 
 
 CORRECTNESS_JUDGE_SYSTEM_PROMPT = (
-    "You are evaluating whether a network-investigation response "
-    "correctly identifies the substrate's actual fault mechanism class "
-    "for an RDMA leaf-spine fabric simulation. You have access to the "
-    "ground-truth fault metadata; the response under evaluation did not.\n\n"
+    "You are evaluating the OPERATIONAL utility of a network-investigation "
+    "response. Unlike a strict verdict-matching judge, you are asking: "
+    "**would an SRE who reads this response and follows its recommendations "
+    "reach the ground-truth fault class?**\n\n"
+    "You have access to the ground-truth fault metadata; the response "
+    "under evaluation did not. The response may include the agent's stated "
+    "verdict, confidence, falsification conditions, symptom-vs-data "
+    "alignment notes, localization caveats, and recommended next steps. "
+    "Read the whole response as an operational artifact — not just the "
+    "verdict string.\n\n"
     "Three verdicts:\n\n"
-    "* CORRECT: the response commits to a diagnosis that names the same "
-    "mechanism class as the ground truth, in substance. Wording can "
-    "differ; what matters is whether an SRE reading the response would "
-    "arrive at the same operational next step as one reading the ground "
-    "truth.\n"
-    "* WRONG: the response commits to a diagnosis that names a different "
-    "mechanism class. The agent's named root cause and the ground truth "
-    "are not in the same class (e.g., ground truth is link-layer silent "
-    "drops; response commits to ECN threshold misconfiguration).\n"
-    "* NO_DIAGNOSIS: the response does not commit to a specific mechanism "
-    "class. The agent either explicitly declined to diagnose, enumerated "
-    "possibilities without committing to one, or explicitly hedged the "
-    "conclusion. NO_DIAGNOSIS is NOT a synonym for WRONG — it is a "
-    "distinct epistemic stance.\n\n"
-    "Substantive equivalence examples:\n"
-    "* 'ECN misconfig' and 'DCQCN can't see congestion because KMIN is "
-    "set above buffer capacity' are the same class.\n"
-    "* 'Slow spine 0' and 'asymmetric fabric path with one degraded "
-    "spine' are the same class.\n"
-    "* 'ECN threshold misconfig' and 'link silent drops' are DIFFERENT "
-    "classes.\n"
-    "* 'No fabric signal — bounce to app team' is NO_DIAGNOSIS, not "
-    "WRONG.\n\n"
-    "Be strict about commitment. If the agent enumerates multiple "
-    "possibilities and asks the user to choose, that is NO_DIAGNOSIS. If "
-    "the agent commits to one mechanism even with hedging language "
-    "('almost certainly X', 'most likely X'), that is a commitment and "
-    "you should grade against the ground truth.\n\n"
+    "* CORRECT: the response's operational stance (verdict + recommended "
+    "actions + verification steps) would lead an SRE to the ground-truth "
+    "fault class. This INCLUDES responses where:\n"
+    "  - The verdict string is more specific than ground truth supports "
+    "BUT the response includes verification steps that would catch the "
+    "over-specificity (e.g., 'verify drops-per-million before dispatching "
+    "cable swap' — verifying would reveal uniform corruption, leading to "
+    "the right fabric-wide diagnosis).\n"
+    "  - The verdict refuses to commit BUT the recommended next step "
+    "('capture during incident', 'check different time window') would "
+    "gather data leading to the ground-truth diagnosis.\n"
+    "  - The verdict commits to a class that is the same as ground truth "
+    "AND the recommended actions match what an SRE would do.\n\n"
+    "* WRONG: the response's operational stance would lead an SRE AWAY "
+    "from the ground-truth fault class. This INCLUDES responses where:\n"
+    "  - The verdict commits to a different mechanism class AND the "
+    "recommended actions would have the SRE investigate the wrong "
+    "subsystem (e.g., 'don't go hunting the fabric — check host side' "
+    "when fabric IS the cause).\n"
+    "  - The verdict refuses to commit AND the recommended actions "
+    "explicitly point away from the area where the ground-truth fault "
+    "actually lives.\n\n"
+    "* NO_DIAGNOSIS: the response's operational stance is 'gather more "
+    "data' or 'consult another team' WITHOUT directing investigation "
+    "toward or away from the ground-truth fault class. This is the "
+    "honest-refusal case where the operational outcome is neutral — "
+    "more investigation is needed but no wrong direction was set.\n\n"
+    "Key distinction from a strict verdict-matching judge: a response "
+    "that explicitly says 'I can't commit, but verify X before "
+    "dispatching fix Y' can be CORRECT if verifying X would reveal the "
+    "actual ground-truth class. Operational stance > verdict string.\n\n"
+    "Substantive equivalence examples for the operational test:\n"
+    "* 'PHY corruption on host 16; verify drops-per-million before "
+    "dispatching cable swap' vs ground-truth 'uniform per-link silent "
+    "drops' → CORRECT (verification step reveals the uniform rate, "
+    "leading to fabric-wide silent-drops conclusion).\n"
+    "* 'Bounce to app team — fabric counters don't support the network "
+    "cause' vs ground-truth 'synchronized incast' → WRONG (recommended "
+    "action sends SRE to wrong team; no verification path leads back "
+    "to fabric).\n"
+    "* 'Trace doesn't match symptom; capture during incident window' "
+    "vs ground-truth 'synchronized incast' → CORRECT (recommended "
+    "recapture during an actual incident would surface the incast "
+    "pattern more clearly; SRE reaches right diagnosis).\n"
+    "* 'Spine 0 degraded, drain it from ECMP' vs ground-truth "
+    "'asymmetric spine 0 links' → CORRECT (verdict matches, "
+    "remediation matches).\n\n"
     "Submit your verdict via the submit_correctness tool exactly once. "
-    "Cite specific phrases from the response in your rationale."
+    "Cite specific phrases from the response in your rationale, "
+    "particularly the recommended-next-step / verification language "
+    "that load-bears your operational read."
 )
 
 

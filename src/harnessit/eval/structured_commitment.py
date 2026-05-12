@@ -185,12 +185,41 @@ _LOCALIZATION_CAVEAT_SIGNALS: tuple[str, ...] = (
 )
 
 
+_FABRIC_HEALTH_SUMMARY_SIGNALS: tuple[str, ...] = (
+    # Section header forms (skill v0.2 induces these directly):
+    "fabric-health summary",
+    "fabric health summary",
+    "**fabric health**",
+    "**fabric-health**",
+    "fabric health:",
+    "fabric-health:",
+    # Inline summary forms:
+    "what is clear",
+    "what's clear",
+    "what's worth noting",
+    "what is worth noting",
+    "worth noting but not diagnostic",
+    "subsystems show no",
+    "subsystems are clean",
+    "from this trace we can",
+    "from the trace we can",
+    "in this trace we can rule out",
+    # Conditional axis (v0.2): only fires when the agent reaches a
+    # NO_DIAGNOSIS-class verdict and still gives the SRE a partial
+    # fabric-state picture. v0.1 traces showed agents producing this
+    # organically (e.g., "Zero PFC, zero ECN, zero drops" alongside
+    # a refusal); v0.2 makes it mandatory under the refusal /
+    # consistent-with-data confidence bands.
+)
+
+
 _AXES: dict[str, tuple[str, ...]] = {
     "verdict": _VERDICT_SIGNALS,
     "confidence_level": _CONFIDENCE_SIGNALS,
     "falsification_conditions": _FALSIFICATION_SIGNALS,
     "symptom_vs_data_alignment": _SYMPTOM_DATA_MISMATCH_SIGNALS,
     "localization_caveat": _LOCALIZATION_CAVEAT_SIGNALS,
+    "fabric_health_summary": _FABRIC_HEALTH_SUMMARY_SIGNALS,
 }
 
 
