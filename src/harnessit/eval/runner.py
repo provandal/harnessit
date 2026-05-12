@@ -471,8 +471,10 @@ def format_eval_summary(result: EvalResult) -> str:
     if result.structured_commitment is not None:
         sc = result.structured_commitment
         lines.append("")
+        total_axes = len(sc.axes_present)
         lines.append(
-            f"--- structured commitment (deterministic; {sc.axes_present_count}/5 axes) ---"
+            f"--- structured commitment (deterministic; "
+            f"{sc.axes_present_count}/{total_axes} axes) ---"
         )
         for axis, present in sc.axes_present.items():
             marker = "PRESENT" if present else "absent "
