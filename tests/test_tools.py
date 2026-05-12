@@ -14,6 +14,7 @@ import pytest
 from harnessit.tools import (
     GET_FABRIC_COUNTERS_SCHEMA,
     GET_FLOW_RECORDS_SCHEMA,
+    GET_HOST_COUNTERS_SCHEMA,
     GET_TOPOLOGY_SCHEMA,
     ToolError,
     Tools,
@@ -54,6 +55,13 @@ class _StubSubstrate:
         envelope, self._next_envelope = self._next_envelope, None
         return envelope
 
+    async def get_host_counters_envelope(self, name: str) -> dict[str, Any]:
+        self.calls.append(("get_host_counters_envelope", {"name": name}))
+        if self._next_envelope is None:
+            raise AssertionError("test forgot to stage an envelope")
+        envelope, self._next_envelope = self._next_envelope, None
+        return envelope
+
 
 # --------------------------------------------------------------- schema
 
@@ -73,6 +81,7 @@ def test_tools_exposes_all_schemas():
     assert "get_topology" in names
     assert "get_fabric_counters" in names
     assert "get_flow_records" in names
+    assert "get_host_counters" in names
 
 
 def test_get_fabric_counters_schema_takes_no_args():
@@ -102,6 +111,27 @@ def test_get_flow_records_schema_takes_no_args():
     assert schema["type"] == "object"
     assert schema["properties"] == {}
     assert schema["required"] == []
+
+
+def test_get_host_counters_schema_takes_no_args():
+    """Agent-visible contract: no args, harness binds the scenario name
+    internally."""
+    assert GET_HOST_COUNTERS_SCHEMA["name"] == "get_host_counters"
+    schema = GET_HOST_COUNTERS_SCHEMA["input_schema"]
+    assert schema["type"] == "object"
+    assert schema["properties"] == {}
+    assert schema["required"] == []
+
+
+def test_get_host_counters_schema_describes_phy_drops_and_complement_to_fabric_counters():
+    """The description must signal that this tool returns PHY-level
+    drops at host NICs and complements get_fabric_counters'
+    switch-admission drops — not duplicate of it."""
+    description = GET_HOST_COUNTERS_SCHEMA["description"].lower()
+    assert "phy" in description
+    assert "host" in description
+    # Should clarify the relationship with the fabric-counters tool
+    assert "admission" in description or "switch" in description
 
 
 def test_get_flow_records_schema_describes_per_flow_shape_and_summary():
@@ -317,6 +347,61 @@ async def test_execute_get_flow_records_forwards_bound_scenario_name(exporter):
     assert substrate.calls == [
         ("get_flow_records_envelope", {"name": "microburst"})
     ]
+
+
+@pytest.mark.asyncio
+async def test_execute_get_host_counters_forwards_bound_scenario_name(exporter):
+    substrate = _StubSubstrate()
+    substrate.stage({
+        "data": {
+            "run_id": "run-abc",
+            "trace_dir": "/traces/run-abc",
+            "hosts": [
+                {"host_id": 0, "ip": "11.0.0.1", "if_index": 1, "drop_packets": 13},
+                {"host_id": 1, "ip": "11.0.1.1", "if_index": 1, "drop_packets": 0},
+            ],
+        },
+        "source": "driver.run_scenario('spike-burst-silent-drops')+host_phy_rx_drops",
+        "observed_at_ns": None,
+        "confidence": "high",
+        "staleness_class": "fresh",
+    })
+    tools = Tools(substrate=substrate, scenario_name="spike-burst-silent-drops")
+    result = await tools.execute("get_host_counters", {})
+
+    # Zero drops surface as 0, not as missing
+    by_host = {r["host_id"]: r for r in result["hosts"]}
+    assert by_host[0]["drop_packets"] == 13
+    assert by_host[1]["drop_packets"] == 0
+    # Each record carries ip + if_index for the agent's correlation work
+    assert by_host[0]["ip"] == "11.0.0.1"
+    assert by_host[0]["if_index"] == 1
+    assert substrate.calls == [
+        ("get_host_counters_envelope", {"name": "spike-burst-silent-drops"})
+    ]
+
+
+@pytest.mark.asyncio
+async def test_get_host_counters_emits_span_under_harnessit_tools_namespace(exporter):
+    substrate = _StubSubstrate()
+    substrate.stage({
+        "data": {"run_id": "run-x", "trace_dir": "/traces/run-x", "hosts": []},
+        "source": "driver.run_scenario('microburst')+host_phy_rx_drops",
+        "observed_at_ns": None,
+        "confidence": "high",
+        "staleness_class": "fresh",
+    })
+    tools = Tools(substrate=substrate, scenario_name="microburst")
+    await tools.execute("get_host_counters", {})
+
+    from langfuse import get_client
+    get_client().flush()
+    spans = exporter.get_finished_spans()
+    matching = [s for s in spans if s.name == "harnessit.tools.get_host_counters"]
+    assert len(matching) == 1, (
+        f"expected one harnessit.tools.get_host_counters span, "
+        f"got {[s.name for s in spans]}"
+    )
 
 
 @pytest.mark.asyncio

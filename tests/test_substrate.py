@@ -276,7 +276,8 @@ async def test_live_doppelganger_adapter_exposes_expected_tools():
     """
     expected = {
         "list_scenarios", "run_scenario", "get_topology",
-        "get_fabric_counters", "get_flow_records", "compare_runs",
+        "get_fabric_counters", "get_flow_records", "get_host_counters",
+        "compare_runs",
     }
     async with DoppelgangerClient.connect() as client:
         tools = set(await client.list_tools())

@@ -101,6 +101,28 @@ GET_FLOW_RECORDS_SCHEMA: dict[str, Any] = {
     },
 }
 
+GET_HOST_COUNTERS_SCHEMA: dict[str, Any] = {
+    "name": "get_host_counters",
+    "description": (
+        "Return per-host PHY-rx drop counters for the RDMA fabric you "
+        "are investigating. Each record carries the host_id, its IP, "
+        "the NIC if_index, and the count of packets dropped at the "
+        "host's PHY layer — i.e., packets that arrived corrupted on "
+        "the host's incoming link. Zero counts are surfaced as 0, "
+        "never missing — observed-zero is data, not absence. This is "
+        "the diagnostic surface for link-layer silent drops (CRC "
+        "errors, optical degradation, cable issues): switch-side "
+        "drops in get_fabric_counters' dropped_packets track admission "
+        "failures, host-side drops here track PHY corruption. The "
+        "two together cover both classes. No arguments."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+    },
+}
+
 
 @dataclass(frozen=True)
 class ToolError:
@@ -144,6 +166,7 @@ class Tools:
             GET_TOPOLOGY_SCHEMA,
             GET_FABRIC_COUNTERS_SCHEMA,
             GET_FLOW_RECORDS_SCHEMA,
+            GET_HOST_COUNTERS_SCHEMA,
         ]
 
     async def execute(self, name: str, args: dict[str, Any]) -> Any:
@@ -161,6 +184,8 @@ class Tools:
             return await self._get_fabric_counters(args)
         if name == "get_flow_records":
             return await self._get_flow_records(args)
+        if name == "get_host_counters":
+            return await self._get_host_counters(args)
         return ToolError(
             tool=name,
             message=(
@@ -250,10 +275,36 @@ class Tools:
         )
         return data
 
+    @observe(
+        name="harnessit.tools.get_host_counters",
+        as_type="span",
+        capture_input=False,
+        capture_output=False,
+    )
+    async def _get_host_counters(self, args: dict[str, Any]) -> dict[str, Any]:
+        """Forward to ``DoppelgangerClient.get_host_counters`` with the bound scenario."""
+        envelope = await self._substrate.get_host_counters_envelope(self._scenario_name)
+        data = envelope["data"]
+        get_client().update_current_span(
+            input={
+                "agent_args": args,
+                "bound_scenario": self._scenario_name,
+            },
+            output=data,
+            metadata={
+                "source": envelope.get("source"),
+                "confidence": envelope.get("confidence"),
+                "staleness_class": envelope.get("staleness_class"),
+                "observed_at_ns": envelope.get("observed_at_ns"),
+            },
+        )
+        return data
+
 
 __all__ = [
     "GET_FABRIC_COUNTERS_SCHEMA",
     "GET_FLOW_RECORDS_SCHEMA",
+    "GET_HOST_COUNTERS_SCHEMA",
     "GET_TOPOLOGY_SCHEMA",
     "ToolError",
     "Tools",

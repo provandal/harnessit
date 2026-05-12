@@ -238,6 +238,39 @@ class DoppelgangerClient:
             args["run_id"] = run_id
         return await self._call("get_flow_records", args)
 
+    async def get_host_counters(
+        self,
+        name: str,
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Run a scenario and return per-host PHY-rx drop counters.
+
+        Each record carries (host_id, ip, if_index, drop_packets).
+        Zero counts surface as ``0``, not as missing rows; the agent
+        should treat zero across the fabric as "no link-layer drops
+        detected," not as "missing data." Silent drops at
+        link_error_rate manifest here because the substrate's
+        RateErrorModel fires PhyRxDrop on the receiving NIC; switch
+        admission drops live in get_fabric_counters' dropped_packets
+        instead.
+        """
+        args: dict[str, Any] = {"name": name}
+        if run_id is not None:
+            args["run_id"] = run_id
+        envelope = await self._call("get_host_counters", args)
+        return envelope["data"]
+
+    async def get_host_counters_envelope(
+        self,
+        name: str,
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Same as ``get_host_counters`` but returns the full envelope."""
+        args: dict[str, Any] = {"name": name}
+        if run_id is not None:
+            args["run_id"] = run_id
+        return await self._call("get_host_counters", args)
+
     async def _call(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         result = await self._session.call_tool(tool_name, arguments=arguments)
         if getattr(result, "isError", False):
