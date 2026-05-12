@@ -23,7 +23,9 @@ from typing import Any, Callable
 from harnessit.eval.correctness import CorrectnessJudgment
 from harnessit.eval.judge import Judgment
 from harnessit.eval.scoring import Score
+from harnessit.eval.structured_commitment import StructuredCommitmentScore
 from harnessit.model import Completion, ToolCall
+from harnessit.skills import Skill
 
 
 @dataclass(frozen=True)
@@ -73,6 +75,11 @@ class EvalScenario:
     # uses ``ModelClient.complete_with_tools``. When False (Stage 2
     # default), the runner uses the naked single-shot path.
     uses_tools: bool = False
+    # Stage 5b: skills are durable, per-SRE-preference prompt fragments
+    # that shape agent behavior across scenarios. The runner appends
+    # each loaded skill's body to ``system_prompt`` before invoking
+    # the model. Empty tuple = naked agent (Stage 5a/sweep baseline).
+    skills: tuple[Skill, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -114,3 +121,11 @@ class EvalResult:
     # target scenario; ``correctness_error`` populates on judge failure.
     correctness_judgment: CorrectnessJudgment | None = None
     correctness_error: str | None = None
+    # Stage 5b: deterministic presence check for the Calibrated
+    # Commitment skill's five axes (verdict / confidence /
+    # falsification / symptom-vs-data / localization). Always populated
+    # by the runner — independent of whether the skill was loaded.
+    # When the skill is loaded, this measures contract adherence; when
+    # it isn't loaded, this measures the baseline rate of calibrated
+    # commitment in naked-Opus responses.
+    structured_commitment: StructuredCommitmentScore | None = None

@@ -148,6 +148,17 @@ class Tools:
     on ``execute``. ``scenario_name`` is the eval-time binding the
     harness uses when forwarding agent calls (which carry no scenario
     name) to the Substrate Adapter.
+
+    ``run_id`` is the optional session-level run-cache key (2026-05-12).
+    When provided, every tool call passes it through to the substrate
+    so all calls within one eval session see data from the *same*
+    substrate run. The runner pre-runs the scenario with this run_id
+    before constructing Tools; the Driver's idempotency check then
+    short-circuits subsequent substrate invocations for the same
+    run_id to a parse-from-disk fast path. For stochastic scenarios
+    (silent-drops, hash-polarization) this is also a correctness
+    fix — otherwise each tool call produces a *different* run whose
+    data wouldn't cross-correlate with the others.
     """
 
     def __init__(
@@ -155,9 +166,11 @@ class Tools:
         *,
         substrate: DoppelgangerClient,
         scenario_name: str,
+        run_id: str | None = None,
     ) -> None:
         self._substrate = substrate
         self._scenario_name = scenario_name
+        self._run_id = run_id
 
     @property
     def schemas(self) -> list[dict[str, Any]]:
@@ -209,6 +222,7 @@ class Tools:
         viewer (Stage 4) to render tool calls with provenance.
         """
         envelope = await self._substrate.get_topology_envelope(self._scenario_name)
+        # get_topology does not run the substrate; no run_id threading needed.
         data = envelope["data"]
         get_client().update_current_span(
             input={
@@ -233,7 +247,9 @@ class Tools:
     )
     async def _get_fabric_counters(self, args: dict[str, Any]) -> dict[str, Any]:
         """Forward to ``DoppelgangerClient.get_fabric_counters`` with the bound scenario."""
-        envelope = await self._substrate.get_fabric_counters_envelope(self._scenario_name)
+        envelope = await self._substrate.get_fabric_counters_envelope(
+            self._scenario_name, run_id=self._run_id,
+        )
         data = envelope["data"]
         get_client().update_current_span(
             input={
@@ -258,7 +274,9 @@ class Tools:
     )
     async def _get_flow_records(self, args: dict[str, Any]) -> dict[str, Any]:
         """Forward to ``DoppelgangerClient.get_flow_records`` with the bound scenario."""
-        envelope = await self._substrate.get_flow_records_envelope(self._scenario_name)
+        envelope = await self._substrate.get_flow_records_envelope(
+            self._scenario_name, run_id=self._run_id,
+        )
         data = envelope["data"]
         get_client().update_current_span(
             input={
@@ -283,7 +301,9 @@ class Tools:
     )
     async def _get_host_counters(self, args: dict[str, Any]) -> dict[str, Any]:
         """Forward to ``DoppelgangerClient.get_host_counters`` with the bound scenario."""
-        envelope = await self._substrate.get_host_counters_envelope(self._scenario_name)
+        envelope = await self._substrate.get_host_counters_envelope(
+            self._scenario_name, run_id=self._run_id,
+        )
         data = envelope["data"]
         get_client().update_current_span(
             input={

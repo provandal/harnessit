@@ -41,22 +41,34 @@ class _StubSubstrate:
         envelope, self._next_envelope = self._next_envelope, None
         return envelope
 
-    async def get_fabric_counters_envelope(self, name: str) -> dict[str, Any]:
-        self.calls.append(("get_fabric_counters_envelope", {"name": name}))
+    async def get_fabric_counters_envelope(
+        self, name: str, run_id: str | None = None,
+    ) -> dict[str, Any]:
+        self.calls.append(
+            ("get_fabric_counters_envelope", {"name": name, "run_id": run_id})
+        )
         if self._next_envelope is None:
             raise AssertionError("test forgot to stage an envelope")
         envelope, self._next_envelope = self._next_envelope, None
         return envelope
 
-    async def get_flow_records_envelope(self, name: str) -> dict[str, Any]:
-        self.calls.append(("get_flow_records_envelope", {"name": name}))
+    async def get_flow_records_envelope(
+        self, name: str, run_id: str | None = None,
+    ) -> dict[str, Any]:
+        self.calls.append(
+            ("get_flow_records_envelope", {"name": name, "run_id": run_id})
+        )
         if self._next_envelope is None:
             raise AssertionError("test forgot to stage an envelope")
         envelope, self._next_envelope = self._next_envelope, None
         return envelope
 
-    async def get_host_counters_envelope(self, name: str) -> dict[str, Any]:
-        self.calls.append(("get_host_counters_envelope", {"name": name}))
+    async def get_host_counters_envelope(
+        self, name: str, run_id: str | None = None,
+    ) -> dict[str, Any]:
+        self.calls.append(
+            ("get_host_counters_envelope", {"name": name, "run_id": run_id})
+        )
         if self._next_envelope is None:
             raise AssertionError("test forgot to stage an envelope")
         envelope, self._next_envelope = self._next_envelope, None
@@ -241,7 +253,7 @@ async def test_execute_get_fabric_counters_forwards_bound_scenario_name(exporter
         assert "pfc_pause_sent" in rec
         assert "ecn_marks_sent" in rec
     assert substrate.calls == [
-        ("get_fabric_counters_envelope", {"name": "pfc-storm"})
+        ("get_fabric_counters_envelope", {"name": "pfc-storm", "run_id": None})
     ]
 
 
@@ -345,7 +357,7 @@ async def test_execute_get_flow_records_forwards_bound_scenario_name(exporter):
     assert result["summary"]["completed"] == 15
     assert result["summary"]["fct"]["p99_ns"] == 2500
     assert substrate.calls == [
-        ("get_flow_records_envelope", {"name": "microburst"})
+        ("get_flow_records_envelope", {"name": "microburst", "run_id": None})
     ]
 
 
@@ -377,8 +389,51 @@ async def test_execute_get_host_counters_forwards_bound_scenario_name(exporter):
     assert by_host[0]["ip"] == "11.0.0.1"
     assert by_host[0]["if_index"] == 1
     assert substrate.calls == [
-        ("get_host_counters_envelope", {"name": "spike-burst-silent-drops"})
+        ("get_host_counters_envelope", {"name": "spike-burst-silent-drops", "run_id": None})
     ]
+
+
+@pytest.mark.asyncio
+async def test_tools_threads_run_id_through_to_substrate_calls(exporter):
+    """Session-level run cache (2026-05-12): when Tools is constructed
+    with a run_id, every substrate-running tool call must pass that
+    run_id through. Driver-side idempotency depends on this — without
+    it, each tool call generates a fresh run_id and bypasses the cache.
+    """
+    substrate = _StubSubstrate()
+    stub_env = {
+        "data": {"placeholder": True},
+        "source": "test",
+        "observed_at_ns": None,
+        "confidence": "high",
+        "staleness_class": "fresh",
+    }
+    tools = Tools(
+        substrate=substrate,
+        scenario_name="microburst",
+        run_id="run-pinned-123",
+    )
+    substrate.stage(stub_env)
+    await tools.execute("get_fabric_counters", {})
+    substrate.stage(stub_env)
+    await tools.execute("get_flow_records", {})
+    substrate.stage(stub_env)
+    await tools.execute("get_host_counters", {})
+
+    # Every substrate-running call must carry the pinned run_id.
+    substrate_running_calls = [
+        c for c in substrate.calls
+        if c[0] in (
+            "get_fabric_counters_envelope",
+            "get_flow_records_envelope",
+            "get_host_counters_envelope",
+        )
+    ]
+    assert len(substrate_running_calls) == 3
+    for _name, args in substrate_running_calls:
+        assert args["run_id"] == "run-pinned-123", (
+            f"tool call missed run_id pinning: {args}"
+        )
 
 
 @pytest.mark.asyncio

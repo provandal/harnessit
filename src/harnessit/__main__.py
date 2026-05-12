@@ -30,12 +30,15 @@ try:
 except (AttributeError, OSError):
     pass
 
+from dataclasses import replace
+
 from harnessit.config import load_settings
 from harnessit.eval import EvalResult
 from harnessit.eval.correctness import CorrectnessJudge
 from harnessit.eval.judge import Judge
 from harnessit.eval.runner import format_eval_summary, run_eval
 from harnessit.model import ModelClient
+from harnessit.skills import load_skill_by_name
 from harnessit.scenarios import (
     asymmetric_path_with_counters_tool,
     hash_polarization_with_counters_tool,
@@ -70,10 +73,14 @@ async def _run(
     use_judge: bool,
     use_correctness: bool,
     judge_model: str | None,
+    skill_names: tuple[str, ...],
 ) -> EvalResult:
     settings = load_settings()
     init_langfuse(settings)
     scenario = SCENARIO_FACTORIES[scenario_name]()
+    if skill_names:
+        loaded_skills = tuple(load_skill_by_name(n) for n in skill_names)
+        scenario = replace(scenario, skills=scenario.skills + loaded_skills)
     judge = (
         Judge.from_settings(settings, model=judge_model) if use_judge else None
     )
@@ -132,6 +139,17 @@ def main(argv: list[str] | None = None) -> int:
             "Applied to both the rubric judge and the correctness judge."
         ),
     )
+    parser.add_argument(
+        "--skill",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help=(
+            "Load a skill by name and inject its body into the agent's "
+            "system prompt. Can be specified multiple times to load "
+            "more than one skill. Currently available: calibrated-commitment."
+        ),
+    )
     args = parser.parse_args(argv)
 
     result = asyncio.run(
@@ -140,6 +158,7 @@ def main(argv: list[str] | None = None) -> int:
             use_judge=not args.no_judge,
             use_correctness=not args.no_correctness,
             judge_model=args.judge_model,
+            skill_names=tuple(args.skill),
         )
     )
     print(format_eval_summary(result))

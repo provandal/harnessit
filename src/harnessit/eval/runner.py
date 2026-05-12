@@ -30,6 +30,10 @@ from harnessit.eval.correctness import (
     CorrectnessJudgment,
 )
 from harnessit.eval.judge import Judge, JudgeError, Judgment
+from harnessit.eval.structured_commitment import (
+    StructuredCommitmentScore,
+    score_structured_commitment,
+)
 from harnessit.eval.types import EvalContext, EvalResult, EvalScenario
 from harnessit.model import Completion, ModelClient
 from harnessit.substrate import DoppelgangerClient
@@ -141,16 +145,36 @@ async def run_eval(
     )
 
     user_prompt = scenario.build_user_prompt(context)
+
+    # 2026-05-12 (Stage 5b): inject loaded skill bodies into the system
+    # prompt. Skills are durable, per-SRE-preference prompt fragments
+    # (see harnessit.skills). Empty tuple = naked agent (sweep
+    # baseline). Skill bodies are appended after the scenario's role
+    # prompt so the agent reads role → skills → tool calls.
+    if scenario.skills:
+        system_prompt = scenario.system_prompt + "\n\n" + "\n\n".join(
+            s.body for s in scenario.skills
+        )
+    else:
+        system_prompt = scenario.system_prompt
+
     tool_calls: tuple = ()
     iterations = 1
     if scenario.uses_tools:
+        # 2026-05-12 session-level run cache: pass the runner's
+        # target_run_id so all agent tool calls reuse the substrate
+        # run produced by the pre-run above. Driver-side idempotency
+        # short-circuits subsequent substrate invocations for the
+        # same run_id, dropping per-eval substrate runs from N+1
+        # (pre-run + one per tool) to 1.
         tools = Tools(
             substrate=substrate,
             scenario_name=scenario.target_scenario,
+            run_id=target_run_id,
         )
         tool_use_completion = await traced_complete_with_tools(
             model_client,
-            system=scenario.system_prompt,
+            system=system_prompt,
             user=user_prompt,
             tools=tools.schemas,
             tool_executor=tools.execute,
@@ -170,7 +194,7 @@ async def run_eval(
     else:
         completion = traced_complete(
             model_client,
-            system=scenario.system_prompt,
+            system=system_prompt,
             user=user_prompt,
             scenario_name=scenario.name,
         )
@@ -183,7 +207,7 @@ async def run_eval(
         try:
             llm_judgment = await traced_judge_score(
                 judge,
-                system_prompt=scenario.system_prompt,
+                system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 agent_response=completion.text,
                 tool_calls=tool_calls,
@@ -195,6 +219,12 @@ async def run_eval(
     primary_score = (
         llm_judgment.to_score() if llm_judgment is not None else keyword_score
     )
+
+    # 2026-05-12 Stage 5b: deterministic presence check for the
+    # Calibrated Commitment skill's five axes. Always runs, regardless
+    # of whether the skill was loaded. With skill loaded → contract
+    # adherence; without → baseline rate.
+    structured_commitment = score_structured_commitment(completion.text)
 
     correctness_judgment: CorrectnessJudgment | None = None
     correctness_error: str | None = None
@@ -208,7 +238,7 @@ async def run_eval(
             try:
                 correctness_judgment = await traced_correctness_score(
                     correctness_judge,
-                    system_prompt=scenario.system_prompt,
+                    system_prompt=system_prompt,
                     user_prompt=user_prompt,
                     agent_response=completion.text,
                     intended_symptom=ground_truth_intended_symptom,
@@ -231,6 +261,9 @@ async def run_eval(
         "expected_to_pass": scenario.expected_to_pass,
         "target_run_id": target_run["run_id"],
         "scoring_mode": "llm_judge" if llm_judgment is not None else "keyword",
+        "skills": [
+            {"name": s.name, "version": s.version} for s in scenario.skills
+        ],
     }
     if comparison is not None:
         metadata["flow_count_delta"] = comparison.get("flow_count_delta")
@@ -269,6 +302,15 @@ async def run_eval(
             "rationale": correctness_judgment.rationale,
             "judge_model": correctness_judgment.judge_model,
         }
+    span_output["structured_commitment"] = {
+        "axes_present": dict(structured_commitment.axes_present),
+        "axes_present_count": structured_commitment.axes_present_count,
+        "all_axes_present": structured_commitment.all_axes_present,
+        "matched_phrases": {
+            axis: list(phrases)
+            for axis, phrases in structured_commitment.matched_phrases.items()
+        },
+    }
 
     client.update_current_span(
         input=span_input,
@@ -322,6 +364,7 @@ async def run_eval(
         judge_error=judge_error,
         correctness_judgment=correctness_judgment,
         correctness_error=correctness_error,
+        structured_commitment=structured_commitment,
     )
 
 
@@ -425,6 +468,17 @@ def format_eval_summary(result: EvalResult) -> str:
     elif result.correctness_error is not None:
         lines.append("")
         lines.append(f"--- diagnosis correctness: SKIPPED ({result.correctness_error}) ---")
+    if result.structured_commitment is not None:
+        sc = result.structured_commitment
+        lines.append("")
+        lines.append(
+            f"--- structured commitment (deterministic; {sc.axes_present_count}/5 axes) ---"
+        )
+        for axis, present in sc.axes_present.items():
+            marker = "PRESENT" if present else "absent "
+            phrases = sc.matched_phrases.get(axis, ())
+            preview = (", ".join(phrases[:3]) + ("…" if len(phrases) > 3 else "")) or "—"
+            lines.append(f"  {marker} {axis}: {preview}")
     if result.langfuse_trace_id:
         lines.append(f"langfuse_trace_id: {result.langfuse_trace_id}")
     return "\n".join(lines)

@@ -22,6 +22,10 @@ from harnessit.eval.correctness import (
 )
 from harnessit.eval.runner import format_eval_summary, run_eval
 from harnessit.eval.scoring import Score, score_triage_quality
+from harnessit.eval.structured_commitment import (
+    StructuredCommitmentScore,
+    score_structured_commitment,
+)
 from harnessit.eval.types import EvalContext, EvalResult, EvalScenario
 
 __all__ = [
@@ -32,8 +36,10 @@ __all__ = [
     "EvalResult",
     "EvalScenario",
     "Score",
+    "StructuredCommitmentScore",
     "Verdict",
     "format_eval_summary",
     "run_eval",
+    "score_structured_commitment",
     "score_triage_quality",
 ]
