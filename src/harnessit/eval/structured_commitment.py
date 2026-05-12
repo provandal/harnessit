@@ -37,12 +37,29 @@ from typing import Iterable
 # Phrase signals per axis. Lower-case, matched against lower-cased
 # response text. Each axis is "present" if ANY of its signals match —
 # multiple phrasings exist for each concept and the scorer is permissive.
+#
 # Curation principle: prefer specific phrases the skill body uses or
-# clearly induces, not generic words that would fire on any response.
+# clearly induces (including section-header phrasings the agent
+# produces in practice), not generic words that would fire on any
+# response.
+#
+# Signal-pattern coverage was expanded 2026-05-12 (post-skill A/B)
+# after observing that the agent commonly uses section headers like
+# "**Confidence: high.**" or "**Localization caveat.** SPECIFIC, not
+# class" — the prior signal set missed these because it focused on
+# inline hedging phrases rather than the skill's section-header
+# vocabulary. Per-axis comments mark which signals are inline (free-
+# form prose) vs section-header (skill-induced structure).
 _VERDICT_SIGNALS: tuple[str, ...] = (
+    # Inline:
     "root cause",
     "diagnosis",
     "mechanism class",
+    # Section-header (skill-induced):
+    "verdict:",
+    "verdict.",
+    "verdict —",
+    "**verdict**",
     # The skill prompts "name the mechanism class and localization in
     # the form you'd use in a help-ticket reply." Responses without
     # the skill still virtually always include "root cause" or
@@ -51,6 +68,7 @@ _VERDICT_SIGNALS: tuple[str, ...] = (
 )
 
 _CONFIDENCE_SIGNALS: tuple[str, ...] = (
+    # The four discrete bands from the skill body:
     "high confidence",
     "most likely",
     "consistent with data",
@@ -58,15 +76,26 @@ _CONFIDENCE_SIGNALS: tuple[str, ...] = (
     "evidence does not support",
     "evidence isn't there",
     "evidence is not there",
-    # The four discrete bands from the skill body, plus a couple of
-    # near-synonymous phrasings the agent commonly produces.
+    # Section-header (skill-induced):
+    "confidence:",
+    "confidence level:",
+    "confidence level.",
+    "confidence level —",
+    "confidence.",
+    "**confidence**",
+    "**confidence level**",
+    # The agent often uses "Confidence: high" or "**Confidence
+    # level.** Evidence does not support..." as section headers in
+    # post-skill responses.
 )
 
 _FALSIFICATION_SIGNALS: tuple[str, ...] = (
+    # Inline:
     "would change my mind",
     "would falsify",
     "would change the verdict",
     "would change the diagnosis",
+    "would change the answer",
     "this would be wrong if",
     "this would not be",
     "would not be this if",
@@ -74,12 +103,24 @@ _FALSIFICATION_SIGNALS: tuple[str, ...] = (
     "rules out",
     "rule out",
     "wrong if",
-    # Popperian language: agent names what observation would flip
-    # the conclusion. The skill asks "if you can't name what would
-    # falsify you, your verdict isn't a hypothesis."
+    "would revise the verdict",
+    "would revise the diagnosis",
+    "what would flip",
+    "would flip me",
+    "would flip this",
+    "would flip the",
+    # Section-header (skill-induced):
+    "falsification condition",
+    "falsification conditions",
+    "**falsification**",
+    # Popperian language: agent names what observation would flip the
+    # conclusion. Skill says "if you can't name what would falsify
+    # you, your verdict isn't a hypothesis." The agent picks up on
+    # the literal "what would flip me" phrasing the skill body uses.
 )
 
 _SYMPTOM_DATA_MISMATCH_SIGNALS: tuple[str, ...] = (
+    # Inline:
     "doesn't match",
     "does not match",
     "mismatch",
@@ -93,28 +134,54 @@ _SYMPTOM_DATA_MISMATCH_SIGNALS: tuple[str, ...] = (
     "the data doesn't show",
     "data does not show",
     "the evidence in this run does not",
-    # When help-ticket symptom doesn't match observed trace, the agent
-    # is supposed to say so. The hash-polarization 2026-05-12 final
-    # trace already did this in the wild.
+    "doesn't describe the same event",
+    "do not describe the same event",
+    "trace doesn't match",
+    "trace does not match",
+    "your verbal characterization",
+    # Section-header (skill-induced):
+    "symptom-vs-data",
+    "symptom vs data",
+    "symptom-vs.-data",
+    "symptom alignment",
+    "**symptom",
+    # When help-ticket symptom doesn't match observed trace, agent
+    # says so. Already in the wild before the skill landed (hash-
+    # polarization 2026-05-12 final trace `d52f08…`).
 )
 
 _LOCALIZATION_CAVEAT_SIGNALS: tuple[str, ...] = (
+    # Inline alternatives / hedges:
     "could also be",
     "alternatively",
     "or it could be",
     "another possibility",
     "doesn't necessarily mean",
     "does not necessarily mean",
-    "specific vs class",
-    "uniform corruption",  # silent-drops-specific but useful for that scenario
+    "uniform corruption",  # silent-drops-specific but useful there
     "traffic concentration",
     "concentration on host",
     "rather than a specific",
     "rather than specific",
     "rather than localized",
     "could be uniform",
-    # When the agent commits to a SPECIFIC entity (host X, port Y),
-    # this signals it acknowledged a CLASS-level alternative explanation.
+    # Specific/class vocabulary the skill body uses:
+    "specific vs class",
+    "specific vs. class",
+    "specific, not class",
+    "class, not specific",
+    "class-level",
+    "class level",
+    "specific localization",
+    "class localization",
+    "specific entity",
+    # Section-header (skill-induced):
+    "localization caveat",
+    "**localization**",
+    # When agent commits to a specific entity (host X, port Y), this
+    # signals it acknowledged a CLASS-level alternative explanation.
+    # Agents often use "Localization caveat." as a section header in
+    # post-skill responses without using the inline hedge phrases.
 )
 
 

@@ -1,0 +1,4884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>HarnessIT trajectory — microburst-with-counters-tool</title>
+  <style>
+:root {
+  --bg: #fafafa; --fg: #1a1a1a; --accent: #2563eb;
+  --muted: #6b7280; --pass: #15803d; --fail: #b91c1c;
+  --panel-bg: #ffffff; --border: #e5e7eb;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0; padding: 2rem; max-width: 1100px;
+  margin-left: auto; margin-right: auto;
+  background: var(--bg); color: var(--fg); line-height: 1.5;
+}
+h1 { margin: 0 0 0.5rem 0; font-size: 1.5rem; }
+h2 { margin: 1.5rem 0 0.75rem; font-size: 1.15rem; }
+.trace-header { padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.trace-id, .timestamp { color: var(--muted); font-size: 0.875rem; margin: 0.25rem 0; }
+.eval-meta { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.75rem; margin-top: 0.5rem; font-size: 0.875rem; }
+.eval-meta dt { color: var(--muted); }
+.eval-meta dd { margin: 0; }
+.diagram { background: var(--panel-bg); padding: 1rem; border-radius: 6px; border: 1px solid var(--border); margin: 1rem 0; overflow-x: auto; }
+section { background: var(--panel-bg); padding: 1rem 1.5rem; margin: 1rem 0; border-radius: 6px; border: 1px solid var(--border); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { padding: 0.5rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; color: var(--muted); }
+.criterion-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+td.pass { color: var(--pass); font-weight: 600; }
+td.fail { color: var(--fail); font-weight: 600; }
+.rationale { color: var(--fg); }
+.judge-overall { margin-top: 0.75rem; padding: 0.75rem; background: #f3f4f6; border-radius: 4px; font-size: 0.95rem; }
+details.message { background: var(--panel-bg); margin: 0.5rem 0; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 4px; }
+details.message summary { cursor: pointer; }
+details.message summary .label { color: var(--accent); }
+.span-id { font-size: 0.75rem; color: var(--muted); margin: 0.25rem 0; }
+.payload { background: #f9fafb; padding: 0.5rem; border-radius: 4px; font-size: 0.825rem; overflow-x: auto; max-height: 24rem; overflow-y: auto; white-space: pre-wrap; }
+.ctx-block { margin: 0.5rem 0; }
+.ctx-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+.ctx-empty { color: var(--muted); font-style: italic; }
+.tools-list { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; padding: 0.5rem; background: #f9fafb; border-radius: 4px; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; }
+.section-heading { color: var(--muted); font-size: 0.875rem; margin: 1.5rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+</style>
+</head>
+<body>
+  <header class='trace-header'>
+  <h1>HarnessIT trajectory: microburst-with-counters-tool</h1>
+  <div class='trace-id'>trace: <code>f6ea63200a5beccefc26ff81f999f683</code></div>
+  <div class='timestamp'>2026-05-12T18:02:53.855000+00:00</div>
+  <dl class='eval-meta'><dt>scenario_name</dt><dd>microburst-with-counters-tool</dd><dt>scoring_mode</dt><dd>llm_judge</dd><dt>expected_to_pass</dt><dd>False</dd><dt>target_run_id</dt><dd>run-2af987268c58__target</dd></dl>
+</header>
+
+  <section class="diagram-section">
+    <h2>Sequence diagram</h2>
+    <div class="diagram">
+      <pre class="mermaid">sequenceDiagram
+  participant USER as User
+  participant AGENT as Agent
+  participant TOOL as Tool
+  participant JUDGE as Judge
+  participant OTHER as Other
+  USER-&gt;&gt;AGENT: help ticket
+  AGENT-&gt;&gt;TOOL: get_topology
+  TOOL--&gt;&gt;AGENT: get_topology → result
+  AGENT-&gt;&gt;TOOL: get_fabric_counters
+  TOOL--&gt;&gt;AGENT: get_fabric_counters → result
+  AGENT-&gt;&gt;TOOL: get_flow_records
+  TOOL--&gt;&gt;AGENT: get_flow_records → result
+  AGENT-&gt;&gt;TOOL: get_host_counters
+  TOOL--&gt;&gt;AGENT: get_host_counters → result
+  AGENT--&gt;&gt;USER: triage response
+  AGENT-&gt;&gt;JUDGE: evaluate response
+  JUDGE--&gt;&gt;AGENT: verdict - PASS
+  OTHER-&gt;&gt;OTHER: harnessit.eval.correctness</pre>
+    </div>
+  </section>
+
+  <section class='scores-panel'>
+  <h2>Trace-level scores</h2>
+  <table class='scores-table'>
+    <thead><tr><th>Name</th><th>Value</th><th>Comment</th></tr></thead>
+    <tbody><tr><td class='criterion-name'>harnessit.eval.diagnosis_correctness</td><td class='pass'>1.0</td><td>CORRECT: A 15-to-1 synchronized incast at t=50ms targeting host 11.0.0.1&#x27;s 25 Gb/s NIC downlink, not a fabric fault.</td></tr><tr><td class='criterion-name'>harnessit.eval.overall_pass</td><td class='pass'>1.0</td><td>All five criteria pass: the response names multiple hypothesis classes, specifies concrete telemetry, hedges and requests corroboration, presents an ordered investigation/recommendation, and deeply synthesizes the fabric context with specific entities and quantitative reasoning.</td></tr></tbody>
+  </table>
+</section>
+  <section class='judge-panel'>
+  <h2>LLM judge — per-criterion rationale</h2>
+  <table class='judge-table'>
+    <thead><tr><th>Verdict</th><th>Criterion</th><th>Rationale</th></tr></thead>
+    <tbody><tr><td class='pass'>PASS</td><td class='criterion-name'>considers_multiple_hypotheses</td><td class='rationale'>The response weighs multiple mechanism classes: PFC pause storm, DCQCN/ECN throttling, link-layer corruption/silent drops, structural asymmetry/slow spine, and incast at the destination NIC. Each is explicitly named and addressed against data.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>names_telemetry_to_query</td><td class='rationale'>Names many distinct telemetry categories with specificity: &#x27;pfc_pause_sent/rcvd&#x27;, &#x27;ecn_marks_sent&#x27;, &#x27;dropped_packets&#x27;, &#x27;qlen_peak_bytes&#x27;, &#x27;pg_watermark_bytes&#x27;, host PHY drops, flow records with FCT/slowdown/standalone_fct, topology asymmetry, and NIC-side &#x27;rx_discards_phy / np_cnp_sent&#x27;.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>acknowledges_unknowns</td><td class='rationale'>Hedges and asks for confirmation: &#x27;Confirm with the ML team that host 0 (11.0.0.1) is rank 0 / parameter server&#x27;, and &#x27;ask them for the RDMA NIC&#x27;s rx_discards_phy / np_cnp_sent from the host side — fabric counters say there&#x27;s nothing to retransmit, but worth corroborating.&#x27; Uses qualified language like &#x27;almost certainly&#x27;.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>coherent_investigation_order</td><td class='rationale'>Structured with clear sections (&#x27;What the data shows&#x27;, &#x27;But there is a clear pattern&#x27;, &#x27;Why the network team&#x27;s initial read was correct&#x27;, &#x27;What I&#x27;d recommend before going further&#x27;) and numbered recommendation steps 1–3.</td></tr><tr><td class='pass'>PASS</td><td class='criterion-name'>synthesizes_available_context</td><td class='rationale'>Integrates specific entities and numbers: &#x27;host 0 (11.0.0.1)&#x27;, &#x27;15-to-1 incast&#x27;, breaks down same-leaf vs remote-leaf slowdowns (2.30×–2.63× vs 1.44×–1.53×) tied to 6,316 ns vs 26,476 ns baselines, references &#x27;25 Gb/s NIC&#x27; funnel vs &#x27;100 Gb/s&#x27; spine uplinks, and rules out hypotheses using &#x27;asymmetry.present = false&#x27;.</td></tr></tbody>
+  </table>
+  <div class='judge-overall'><strong>Overall (claude-opus-4-7):</strong> All five criteria pass: the response names multiple hypothesis classes, specifies concrete telemetry, hedges and requests corroboration, presents an ordered investigation/recommendation, and deeply synthesizes the fabric context with specific entities and quantitative reasoning.</div>
+</section>
+
+  <section class="messages-section">
+    <h2>Messages (13)</h2>
+    <details class='message' open>
+  <summary><strong>1.</strong> User → Agent <span class='label'>help ticket</span></summary>
+  <div class='span-id'>span: <code>b8a2c3e4a5d67774</code></div>
+  <div class='ctx-block'><div class='ctx-label'>system prompt</div><pre class='payload'>You are a network-investigation assistant for an RDMA leaf-spine fabric. Help the user diagnose their issue.</pre></div><div class='ctx-block'><div class='ctx-label'>tools available to agent</div><div class='tools-list'>get_topology, get_fabric_counters, get_flow_records, get_host_counters</div></div><div class='ctx-block'><div class='ctx-label'>user prompt (help ticket)</div><pre class='payload'>Hey network team — we&#x27;re getting reports of brief throughput collapses on training jobs targeting host 11.0.0.1. Iteration time spikes for a few hundred milliseconds at a stretch and then recovers on its own; application logs blame the network, our network team initially read it as a workload pattern. Started showing up this morning around 09:14 UTC. Can you take a look?
+</pre></div>
+</details>
+<details class='message'>
+  <summary><strong>2.</strong> Agent → Tool <span class='label'>get_topology</span></summary>
+  <div class='span-id'>span: <code>d294bbf81f08f0ca</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {}
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>3.</strong> Tool ← Agent <span class='label'>get_topology → result</span></summary>
+  <div class='span-id'>span: <code>d294bbf81f08f0ca</code></div>
+  <pre class='payload'>{
+  &quot;output&quot;: {
+    &quot;shape&quot;: &quot;leaf-spine&quot;,
+    &quot;leaves&quot;: 2,
+    &quot;spines&quot;: 4,
+    &quot;hosts_per_leaf&quot;: 8,
+    &quot;total_hosts&quot;: 16,
+    &quot;host_ip_convention&quot;: &quot;Host with substrate id N has IP 11.&lt;(N // 256) % 256&gt;.&lt;N % 256&gt;.1. The fourth octet is always 1 (anchor). The third octet equals N mod 256 (so within a /16 block, the third octet equals the host_id). The second octet is N // 256 (only nonzero for fabrics with more than 256 hosts). Pinned by the substrate&#x27;s node_id_to_ip function in examples/PowerTCP/powertcp-evaluation-burst.cc; same convention across all scenarios.&quot;,
+    &quot;leaf_switches&quot;: [
+      {
+        &quot;index&quot;: 0,
+        &quot;node_id&quot;: 16,
+        &quot;hosts&quot;: [
+          {
+            &quot;id&quot;: 0,
+            &quot;ip&quot;: &quot;11.0.0.1&quot;
+          },
+          {
+            &quot;id&quot;: 1,
+            &quot;ip&quot;: &quot;11.0.1.1&quot;
+          },
+          {
+            &quot;id&quot;: 2,
+            &quot;ip&quot;: &quot;11.0.2.1&quot;
+          },
+          {
+            &quot;id&quot;: 3,
+            &quot;ip&quot;: &quot;11.0.3.1&quot;
+          },
+          {
+            &quot;id&quot;: 4,
+            &quot;ip&quot;: &quot;11.0.4.1&quot;
+          },
+          {
+            &quot;id&quot;: 5,
+            &quot;ip&quot;: &quot;11.0.5.1&quot;
+          },
+          {
+            &quot;id&quot;: 6,
+            &quot;ip&quot;: &quot;11.0.6.1&quot;
+          },
+          {
+            &quot;id&quot;: 7,
+            &quot;ip&quot;: &quot;11.0.7.1&quot;
+          }
+        ]
+      },
+      {
+        &quot;index&quot;: 1,
+        &quot;node_id&quot;: 17,
+        &quot;hosts&quot;: [
+          {
+            &quot;id&quot;: 8,
+            &quot;ip&quot;: &quot;11.0.8.1&quot;
+          },
+          {
+            &quot;id&quot;: 9,
+            &quot;ip&quot;: &quot;11.0.9.1&quot;
+          },
+          {
+            &quot;id&quot;: 10,
+            &quot;ip&quot;: &quot;11.0.10.1&quot;
+          },
+          {
+            &quot;id&quot;: 11,
+            &quot;ip&quot;: &quot;11.0.11.1&quot;
+          },
+          {
+            &quot;id&quot;: 12,
+            &quot;ip&quot;: &quot;11.0.12.1&quot;
+          },
+          {
+            &quot;id&quot;: 13,
+            &quot;ip&quot;: &quot;11.0.13.1&quot;
+          },
+          {
+            &quot;id&quot;: 14,
+            &quot;ip&quot;: &quot;11.0.14.1&quot;
+          },
+          {
+            &quot;id&quot;: 15,
+            &quot;ip&quot;: &quot;11.0.15.1&quot;
+          }
+        ]
+      }
+    ],
+    &quot;spine_switches&quot;: [
+      {
+        &quot;index&quot;: 0,
+        &quot;node_id&quot;: 18
+      },
+      {
+        &quot;index&quot;: 1,
+        &quot;node_id&quot;: 19
+      },
+      {
+        &quot;index&quot;: 2,
+        &quot;node_id&quot;: 20
+      },
+      {
+        &quot;index&quot;: 3,
+        &quot;node_id&quot;: 21
+      }
+    ],
+    &quot;host_link&quot;: {
+      &quot;bps&quot;: 25000000000,
+      &quot;delay&quot;: &quot;1us&quot;
+    },
+    &quot;spine_link&quot;: {
+      &quot;bps&quot;: 100000000000,
+      &quot;delay&quot;: &quot;5us&quot;
+    },
+    &quot;ecmp&quot;: &quot;full-mesh leaf-to-spine&quot;,
+    &quot;asymmetry&quot;: {
+      &quot;present&quot;: false,
+      &quot;slow_spine_indices&quot;: [],
+      &quot;slow_link_bps&quot;: null,
+      &quot;slow_link_delay&quot;: null
+    },
+    &quot;congestion_control&quot;: {
+      &quot;cc_mode&quot;: 3,
+      &quot;name&quot;: &quot;DCQCN&quot;,
+      &quot;qcn_enabled&quot;: true,
+      &quot;buffer_size_mb&quot;: 4
+    }
+  },
+  &quot;source&quot;: &quot;adapter.scenario_topology(&#x27;microburst&#x27;)&quot;,
+  &quot;confidence&quot;: &quot;high&quot;,
+  &quot;staleness_class&quot;: &quot;fresh&quot;
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>4.</strong> Agent → Tool <span class='label'>get_fabric_counters</span></summary>
+  <div class='span-id'>span: <code>b8531129d0a84589</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {}
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>5.</strong> Tool ← Agent <span class='label'>get_fabric_counters → result</span></summary>
+  <div class='span-id'>span: <code>b8531129d0a84589</code></div>
+  <pre class='payload'>{
+  &quot;output&quot;: {
+    &quot;run_id&quot;: &quot;run-068d0ba5271f&quot;,
+    &quot;trace_dir&quot;: &quot;C:\\Users\\gid_f\\Projects\\HarnessIT_Workspace\\harnessit\\traces\\run-068d0ba5271f&quot;,
+    &quot;ports&quot;: [
+      {
+        &quot;node_id&quot;: 16,
+        &quot;if_index&quot;: 1,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 75,
+            &quot;rx_bytes&quot;: 81750,
+            &quot;tx_packets&quot;: 75,
+            &quot;tx_bytes&quot;: 81750,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 16,
+        &quot;if_index&quot;: 2,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 16,
+        &quot;if_index&quot;: 3,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 16,
+        &quot;if_index&quot;: 4,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 16,
+        &quot;if_index&quot;: 5,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 16,
+        &quot;if_index&quot;: 6,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 16,
+        &quot;if_index&quot;: 7,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 16,
+        &quot;if_index&quot;: 8,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 16,
+        &quot;if_index&quot;: 9,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 16,
+        &quot;if_index&quot;: 10,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 16,
+        &quot;if_index&quot;: 11,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 15,
+            &quot;rx_bytes&quot;: 1320,
+            &quot;tx_packets&quot;: 15,
+            &quot;tx_bytes&quot;: 1320,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 16,
+        &quot;if_index&quot;: 12,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 15,
+            &quot;rx_bytes&quot;: 1320,
+            &quot;tx_packets&quot;: 15,
+            &quot;tx_bytes&quot;: 1320,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;if_index&quot;: 1,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;if_index&quot;: 2,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;if_index&quot;: 3,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;if_index&quot;: 4,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;if_index&quot;: 5,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;if_index&quot;: 6,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;if_index&quot;: 7,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;if_index&quot;: 8,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 25000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;if_index&quot;: 9,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 5450,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 5450,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;if_index&quot;: 10,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 10,
+            &quot;rx_bytes&quot;: 10900,
+            &quot;tx_packets&quot;: 10,
+            &quot;tx_bytes&quot;: 10900,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;if_index&quot;: 11,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 20,
+            &quot;rx_bytes&quot;: 21800,
+            &quot;tx_packets&quot;: 20,
+            &quot;tx_bytes&quot;: 21800,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 17,
+        &quot;if_index&quot;: 12,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 5450,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 5450,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 18,
+        &quot;if_index&quot;: 1,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 5450,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 5450,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 18,
+        &quot;if_index&quot;: 2,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 19,
+        &quot;if_index&quot;: 1,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 10,
+            &quot;rx_bytes&quot;: 10900,
+            &quot;tx_packets&quot;: 10,
+            &quot;tx_bytes&quot;: 10900,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 19,
+        &quot;if_index&quot;: 2,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 440,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 440,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 20,
+        &quot;if_index&quot;: 1,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 20,
+            &quot;rx_bytes&quot;: 21800,
+            &quot;tx_packets&quot;: 20,
+            &quot;tx_bytes&quot;: 21800,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 20,
+        &quot;if_index&quot;: 2,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 15,
+            &quot;rx_bytes&quot;: 1320,
+            &quot;tx_packets&quot;: 15,
+            &quot;tx_bytes&quot;: 1320,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 21,
+        &quot;if_index&quot;: 1,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 5,
+            &quot;rx_bytes&quot;: 5450,
+            &quot;tx_packets&quot;: 5,
+            &quot;tx_bytes&quot;: 5450,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      },
+      {
+        &quot;node_id&quot;: 21,
+        &quot;if_index&quot;: 2,
+        &quot;node_type&quot;: 1,
+        &quot;oper_status&quot;: &quot;up&quot;,
+        &quot;admin_status&quot;: &quot;up&quot;,
+        &quot;speed_bps&quot;: 100000000000,
+        &quot;mtu_bytes&quot;: 1000,
+        &quot;queues&quot;: [
+          {
+            &quot;q_index&quot;: 0,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 1,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 2,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 3,
+            &quot;rx_packets&quot;: 15,
+            &quot;rx_bytes&quot;: 1320,
+            &quot;tx_packets&quot;: 15,
+            &quot;tx_bytes&quot;: 1320,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 4,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 5,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 6,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          },
+          {
+            &quot;q_index&quot;: 7,
+            &quot;rx_packets&quot;: 0,
+            &quot;rx_bytes&quot;: 0,
+            &quot;tx_packets&quot;: 0,
+            &quot;tx_bytes&quot;: 0,
+            &quot;dropped_packets&quot;: 0,
+            &quot;qlen_peak_bytes&quot;: 0,
+            &quot;pg_watermark_bytes&quot;: 0,
+            &quot;pfc_pause_sent&quot;: 0,
+            &quot;pfc_pause_rcvd&quot;: 0,
+            &quot;pfc_resume_sent&quot;: 0,
+            &quot;pfc_resume_rcvd&quot;: 0,
+            &quot;ecn_marks_sent&quot;: 0
+          }
+        ]
+      }
+    ]
+  },
+  &quot;source&quot;: &quot;driver.run_scenario(&#x27;microburst&#x27;)+counters_aggregate&quot;,
+  &quot;confidence&quot;: &quot;high&quot;,
+  &quot;staleness_class&quot;: &quot;fresh&quot;
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>6.</strong> Agent → Tool <span class='label'>get_flow_records</span></summary>
+  <div class='span-id'>span: <code>773c34c066f384ca</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {}
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>7.</strong> Tool ← Agent <span class='label'>get_flow_records → result</span></summary>
+  <div class='span-id'>span: <code>773c34c066f384ca</code></div>
+  <pre class='payload'>{
+  &quot;output&quot;: {
+    &quot;run_id&quot;: &quot;run-96e55ed2d7ee&quot;,
+    &quot;trace_dir&quot;: &quot;C:\\Users\\gid_f\\Projects\\HarnessIT_Workspace\\harnessit\\traces\\run-96e55ed2d7ee&quot;,
+    &quot;summary&quot;: {
+      &quot;total&quot;: 15,
+      &quot;completed&quot;: 15,
+      &quot;incomplete&quot;: 0,
+      &quot;by_status&quot;: {
+        &quot;completed&quot;: 15,
+        &quot;failed&quot;: 0,
+        &quot;timed_out&quot;: 0,
+        &quot;dropped_without_completion&quot;: 0
+      },
+      &quot;fct&quot;: {
+        &quot;n&quot;: 15,
+        &quot;min_ns&quot;: 14496,
+        &quot;p50_ns&quot;: 38082,
+        &quot;p90_ns&quot;: 40170,
+        &quot;p99_ns&quot;: 40518,
+        &quot;p999_ns&quot;: 40518,
+        &quot;max_ns&quot;: 40518,
+        &quot;mean_ns&quot;: 28212
+      }
+    },
+    &quot;flows&quot;: [
+      {
+        &quot;sip&quot;: &quot;0b000101&quot;,
+        &quot;dip&quot;: &quot;0b000001&quot;,
+        &quot;sport&quot;: 10000,
+        &quot;dport&quot;: 10001,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;actual_size_bytes&quot;: 5000,
+        &quot;actual_start_ns&quot;: 50000000,
+        &quot;fct_ns&quot;: 14496,
+        &quot;standalone_fct_ns&quot;: 6316,
+        &quot;slowdown&quot;: 2.2951234958834705
+      },
+      {
+        &quot;sip&quot;: &quot;0b000201&quot;,
+        &quot;dip&quot;: &quot;0b000001&quot;,
+        &quot;sport&quot;: 10000,
+        &quot;dport&quot;: 10002,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;actual_size_bytes&quot;: 5000,
+        &quot;actual_start_ns&quot;: 50000000,
+        &quot;fct_ns&quot;: 14844,
+        &quot;standalone_fct_ns&quot;: 6316,
+        &quot;slowdown&quot;: 2.350221659278024
+      },
+      {
+        &quot;sip&quot;: &quot;0b000301&quot;,
+        &quot;dip&quot;: &quot;0b000001&quot;,
+        &quot;sport&quot;: 10000,
+        &quot;dport&quot;: 10003,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;actual_size_bytes&quot;: 5000,
+        &quot;actual_start_ns&quot;: 50000000,
+        &quot;fct_ns&quot;: 15192,
+        &quot;standalone_fct_ns&quot;: 6316,
+        &quot;slowdown&quot;: 2.4053198226725776
+      },
+      {
+        &quot;sip&quot;: &quot;0b000401&quot;,
+        &quot;dip&quot;: &quot;0b000001&quot;,
+        &quot;sport&quot;: 10000,
+        &quot;dport&quot;: 10004,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;actual_size_bytes&quot;: 5000,
+        &quot;actual_start_ns&quot;: 50000000,
+        &quot;fct_ns&quot;: 15540,
+        &quot;standalone_fct_ns&quot;: 6316,
+        &quot;slowdown&quot;: 2.460417986067131
+      },
+      {
+        &quot;sip&quot;: &quot;0b000501&quot;,
+        &quot;dip&quot;: &quot;0b000001&quot;,
+        &quot;sport&quot;: 10000,
+        &quot;dport&quot;: 10005,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;actual_size_bytes&quot;: 5000,
+        &quot;actual_start_ns&quot;: 50000000,
+        &quot;fct_ns&quot;: 15888,
+        &quot;standalone_fct_ns&quot;: 6316,
+        &quot;slowdown&quot;: 2.5155161494616847
+      },
+      {
+        &quot;sip&quot;: &quot;0b000601&quot;,
+        &quot;dip&quot;: &quot;0b000001&quot;,
+        &quot;sport&quot;: 10000,
+        &quot;dport&quot;: 10006,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;actual_size_bytes&quot;: 5000,
+        &quot;actual_start_ns&quot;: 50000000,
+        &quot;fct_ns&quot;: 16236,
+        &quot;standalone_fct_ns&quot;: 6316,
+        &quot;slowdown&quot;: 2.570614312856238
+      },
+      {
+        &quot;sip&quot;: &quot;0b000701&quot;,
+        &quot;dip&quot;: &quot;0b000001&quot;,
+        &quot;sport&quot;: 10000,
+        &quot;dport&quot;: 10007,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;actual_size_bytes&quot;: 5000,
+        &quot;actual_start_ns&quot;: 50000000,
+        &quot;fct_ns&quot;: 16584,
+        &quot;standalone_fct_ns&quot;: 6316,
+        &quot;slowdown&quot;: 2.6257124762507917
+      },
+      {
+        &quot;sip&quot;: &quot;0b000c01&quot;,
+        &quot;dip&quot;: &quot;0b000001&quot;,
+        &quot;sport&quot;: 10000,
+        &quot;dport&quot;: 10012,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;actual_size_bytes&quot;: 5000,
+        &quot;actual_start_ns&quot;: 50000000,
+        &quot;fct_ns&quot;: 38082,
+        &quot;standalone_fct_ns&quot;: 26476,
+        &quot;slowdown&quot;: 1.4383592687717177
+      },
+      {
+        &quot;sip&quot;: &quot;0b000d01&quot;,
+        &quot;dip&quot;: &quot;0b000001&quot;,
+        &quot;sport&quot;: 10000,
+        &quot;dport&quot;: 10013,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;actual_size_bytes&quot;: 5000,
+        &quot;actual_start_ns&quot;: 50000000,
+        &quot;fct_ns&quot;: 38430,
+        &quot;standalone_fct_ns&quot;: 26476,
+        &quot;slowdown&quot;: 1.4515032482248074
+      },
+      {
+        &quot;sip&quot;: &quot;0b000e01&quot;,
+        &quot;dip&quot;: &quot;0b000001&quot;,
+        &quot;sport&quot;: 10000,
+        &quot;dport&quot;: 10014,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;actual_size_bytes&quot;: 5000,
+        &quot;actual_start_ns&quot;: 50000000,
+        &quot;fct_ns&quot;: 38778,
+        &quot;standalone_fct_ns&quot;: 26476,
+        &quot;slowdown&quot;: 1.464647227677897
+      },
+      {
+        &quot;sip&quot;: &quot;0b000801&quot;,
+        &quot;dip&quot;: &quot;0b000001&quot;,
+        &quot;sport&quot;: 10000,
+        &quot;dport&quot;: 10008,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;actual_size_bytes&quot;: 5000,
+        &quot;actual_start_ns&quot;: 50000000,
+        &quot;fct_ns&quot;: 39126,
+        &quot;standalone_fct_ns&quot;: 26476,
+        &quot;slowdown&quot;: 1.4777912071309867
+      },
+      {
+        &quot;sip&quot;: &quot;0b000f01&quot;,
+        &quot;dip&quot;: &quot;0b000001&quot;,
+        &quot;sport&quot;: 10000,
+        &quot;dport&quot;: 10015,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;actual_size_bytes&quot;: 5000,
+        &quot;actual_start_ns&quot;: 50000000,
+        &quot;fct_ns&quot;: 39474,
+        &quot;standalone_fct_ns&quot;: 26476,
+        &quot;slowdown&quot;: 1.490935186584076
+      },
+      {
+        &quot;sip&quot;: &quot;0b000901&quot;,
+        &quot;dip&quot;: &quot;0b000001&quot;,
+        &quot;sport&quot;: 10000,
+        &quot;dport&quot;: 10009,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;actual_size_bytes&quot;: 5000,
+        &quot;actual_start_ns&quot;: 50000000,
+        &quot;fct_ns&quot;: 39822,
+        &quot;standalone_fct_ns&quot;: 26476,
+        &quot;slowdown&quot;: 1.5040791660371657
+      },
+      {
+        &quot;sip&quot;: &quot;0b000a01&quot;,
+        &quot;dip&quot;: &quot;0b000001&quot;,
+        &quot;sport&quot;: 10000,
+        &quot;dport&quot;: 10010,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;actual_size_bytes&quot;: 5000,
+        &quot;actual_start_ns&quot;: 50000000,
+        &quot;fct_ns&quot;: 40170,
+        &quot;standalone_fct_ns&quot;: 26476,
+        &quot;slowdown&quot;: 1.5172231454902554
+      },
+      {
+        &quot;sip&quot;: &quot;0b000b01&quot;,
+        &quot;dip&quot;: &quot;0b000001&quot;,
+        &quot;sport&quot;: 10000,
+        &quot;dport&quot;: 10011,
+        &quot;status&quot;: &quot;completed&quot;,
+        &quot;actual_size_bytes&quot;: 5000,
+        &quot;actual_start_ns&quot;: 50000000,
+        &quot;fct_ns&quot;: 40518,
+        &quot;standalone_fct_ns&quot;: 26476,
+        &quot;slowdown&quot;: 1.5303671249433448
+      }
+    ]
+  },
+  &quot;source&quot;: &quot;driver.run_scenario(&#x27;microburst&#x27;)+fct_parse+intended_xref&quot;,
+  &quot;confidence&quot;: &quot;high&quot;,
+  &quot;staleness_class&quot;: &quot;fresh&quot;
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>8.</strong> Agent → Tool <span class='label'>get_host_counters</span></summary>
+  <div class='span-id'>span: <code>566b4bf8d0cefdd5</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {}
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>9.</strong> Tool ← Agent <span class='label'>get_host_counters → result</span></summary>
+  <div class='span-id'>span: <code>566b4bf8d0cefdd5</code></div>
+  <pre class='payload'>{
+  &quot;output&quot;: {
+    &quot;run_id&quot;: &quot;run-b3627d98f0ed&quot;,
+    &quot;trace_dir&quot;: &quot;C:\\Users\\gid_f\\Projects\\HarnessIT_Workspace\\harnessit\\traces\\run-b3627d98f0ed&quot;,
+    &quot;hosts&quot;: [
+      {
+        &quot;host_id&quot;: 0,
+        &quot;ip&quot;: &quot;11.0.0.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      },
+      {
+        &quot;host_id&quot;: 1,
+        &quot;ip&quot;: &quot;11.0.1.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      },
+      {
+        &quot;host_id&quot;: 2,
+        &quot;ip&quot;: &quot;11.0.2.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      },
+      {
+        &quot;host_id&quot;: 3,
+        &quot;ip&quot;: &quot;11.0.3.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      },
+      {
+        &quot;host_id&quot;: 4,
+        &quot;ip&quot;: &quot;11.0.4.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      },
+      {
+        &quot;host_id&quot;: 5,
+        &quot;ip&quot;: &quot;11.0.5.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      },
+      {
+        &quot;host_id&quot;: 6,
+        &quot;ip&quot;: &quot;11.0.6.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      },
+      {
+        &quot;host_id&quot;: 7,
+        &quot;ip&quot;: &quot;11.0.7.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      },
+      {
+        &quot;host_id&quot;: 8,
+        &quot;ip&quot;: &quot;11.0.8.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      },
+      {
+        &quot;host_id&quot;: 9,
+        &quot;ip&quot;: &quot;11.0.9.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      },
+      {
+        &quot;host_id&quot;: 10,
+        &quot;ip&quot;: &quot;11.0.10.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      },
+      {
+        &quot;host_id&quot;: 11,
+        &quot;ip&quot;: &quot;11.0.11.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      },
+      {
+        &quot;host_id&quot;: 12,
+        &quot;ip&quot;: &quot;11.0.12.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      },
+      {
+        &quot;host_id&quot;: 13,
+        &quot;ip&quot;: &quot;11.0.13.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      },
+      {
+        &quot;host_id&quot;: 14,
+        &quot;ip&quot;: &quot;11.0.14.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      },
+      {
+        &quot;host_id&quot;: 15,
+        &quot;ip&quot;: &quot;11.0.15.1&quot;,
+        &quot;if_index&quot;: 1,
+        &quot;drop_packets&quot;: 0
+      }
+    ]
+  },
+  &quot;source&quot;: &quot;driver.run_scenario(&#x27;microburst&#x27;)+host_phy_rx_drops&quot;,
+  &quot;confidence&quot;: &quot;high&quot;,
+  &quot;staleness_class&quot;: &quot;fresh&quot;
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>10.</strong> Agent ← User <span class='label'>triage response</span></summary>
+  <div class='span-id'>span: <code>21c65e18052383bc</code></div>
+  <pre class='payload'>{
+  &quot;text&quot;: &quot;Here&#x27;s what I found. The headline is going to be a little uncomfortable, but I want to share it straight rather than chase a phantom.\n\n## Summary: the fabric is clean. This is a workload pattern.\n\n### What the data shows\n\n**Fabric counters — no congestion signals anywhere.**\nAcross all 16 host-facing ports, 8 spine-uplinks per leaf, and all 4 spines, every single counter that would indicate a fabric-side problem is zero:\n- `pfc_pause_sent` / `pfc_pause_rcvd` = 0 everywhere\n- `ecn_marks_sent` = 0 everywhere\n- `dropped_packets` = 0 everywhere\n- `qlen_peak_bytes` = 0, `pg_watermark_bytes` = 0 everywhere\n\nNo switch on any path saw a queue deep enough to mark a packet, let alone pause a neighbor. If there had been a 100ms+ throughput collapse caused by a PFC pause storm or DCQCN throttling, those counters would not be zero — pauses and ECN marks are persistent counters, they don&#x27;t expire.\n\n**Host PHY drops — zero on every host, including 11.0.0.1.**\nRules out link-layer corruption / silent drops on the victim&#x27;s incoming link as well as any other host.\n\n**Topology — symmetric.**\n`asymmetry.present = false`, no slow spines, full-mesh ECMP. No structural reason for one destination to be uniquely punished.\n\n### But there *is* a clear pattern in the flow records — and it explains the report\n\nLook at what&#x27;s actually on the wire: **15 flows, all completed, all targeting 11.0.0.1 (host 0), all starting at exactly t=50,000,000 ns, all 5000 bytes, all from distinct source hosts (the other 15 hosts in the fabric).**\n\nThat&#x27;s a 15-to-1 incast. Every other host in the fabric is hammering 11.0.0.1 simultaneously. The slowdowns line up exactly with that:\n\n| Source leaf | Flows | Slowdown range | standalone_fct |\n|---|---|---|---|\n| Same leaf as dst (hosts 1–7) | 7 | 2.30× – 2.63× | 6,316 ns |\n| Remote leaf (hosts 8–15) | 8 | 1.44× – 1.53× | 26,476 ns |\n\nThe same-leaf flows have a *higher* slowdown ratio simply because their uncongested baseline is so small (6.3µs) that any contention at the receiver&#x27;s 25 Gb/s NIC dominates. The remote-leaf flows have a longer baseline (26.5µs) so the same head-of-line wait at the destination NIC looks like a smaller multiplier. The monotonically increasing FCTs (14,496 → 16,584 ns and 38,082 → 40,518 ns, each step ~348 ns) are the serialization tail at the receiver — flows draining one MTU at a time out of the destination&#x27;s ingress.\n\nCritically: **the contention is at the destination host&#x27;s 25 Gb/s downlink**, not in the fabric. The spines have 100 Gb/s uplinks and saw negligible traffic. The leaf-to-host port toward 11.0.0.1 was the funnel, but even there the queue never built deep enough to trigger ECN marking or PFC — the flows are small (5 KB) and the burst clears in tens of microseconds.\n\n### Why the network team&#x27;s initial read was correct\n\nYour earlier triage call — \&quot;workload pattern\&quot; — is supported by the data:\n1. Every fabric congestion-management surface (PFC, ECN, drops, queue watermarks) reports zero.\n2. Every host PHY drop counter reports zero.\n3. The flow table shows a textbook N-to-1 incast aimed precisely at the reported victim.\n4. The fabric is symmetric and ECMP is healthy.\n\nThis is the classic \&quot;training all-gather / parameter-server pull\&quot; footprint: 15 workers shipping a shard to rank 0 at the same step boundary. The \&quot;few hundred ms\&quot; the application sees is almost certainly *many* of these micro-bursts back-to-back across iteration boundaries, each one individually too short to even register on switch queue watermarks but cumulatively stalling rank 0&#x27;s receive pipeline.\n\n### What I&#x27;d recommend before going further\n\n1. **Confirm with the ML team that host 0 (11.0.0.1) is rank 0 / parameter server / gradient sink** for the affected job. The traffic shape says it is.\n2. If the application logs blame the network specifically for \&quot;drops\&quot; or \&quot;retransmits,\&quot; ask them for the RDMA NIC&#x27;s `rx_discards_phy` / `np_cnp_sent` from the host side — fabric counters say there&#x27;s nothing to retransmit, but worth corroborating.\n3. If this needs a network-side mitigation rather than a workload fix, options are: shard the reduce across more receivers, stagger iteration boundaries, or move to a hierarchical/ring collective so 11.0.0.1 isn&#x27;t the sole sink. Pure fabric tuning (DCQCN thresholds, buffer carving) won&#x27;t help here — there&#x27;s no queue building to tune against.\n\nIf you&#x27;d like, I can re-run any of these surfaces after the ML team makes a change, to confirm the incast pattern disappears.&quot;,
+  &quot;model&quot;: &quot;claude-opus-4-7&quot;,
+  &quot;input_tokens&quot;: 52945,
+  &quot;output_tokens&quot;: 1965
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>11.</strong> Agent → Judge <span class='label'>evaluate response</span></summary>
+  <div class='span-id'>span: <code>ce2f65f3c21b43c5</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {
+    &quot;judge_model&quot;: &quot;claude-opus-4-7&quot;,
+    &quot;agent_response_length&quot;: 4481,
+    &quot;tool_calls_count&quot;: 4
+  }
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>12.</strong> Judge ← Agent <span class='label'>verdict: PASS</span></summary>
+  <div class='span-id'>span: <code>ce2f65f3c21b43c5</code></div>
+  <pre class='payload'>{
+  &quot;output&quot;: {
+    &quot;overall_pass&quot;: true,
+    &quot;overall_rationale&quot;: &quot;All five criteria pass: the response names multiple hypothesis classes, specifies concrete telemetry, hedges and requests corroboration, presents an ordered investigation/recommendation, and deeply synthesizes the fabric context with specific entities and quantitative reasoning.&quot;,
+    &quot;criteria&quot;: [
+      {
+        &quot;name&quot;: &quot;considers_multiple_hypotheses&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;The response weighs multiple mechanism classes: PFC pause storm, DCQCN/ECN throttling, link-layer corruption/silent drops, structural asymmetry/slow spine, and incast at the destination NIC. Each is explicitly named and addressed against data.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;names_telemetry_to_query&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Names many distinct telemetry categories with specificity: &#x27;pfc_pause_sent/rcvd&#x27;, &#x27;ecn_marks_sent&#x27;, &#x27;dropped_packets&#x27;, &#x27;qlen_peak_bytes&#x27;, &#x27;pg_watermark_bytes&#x27;, host PHY drops, flow records with FCT/slowdown/standalone_fct, topology asymmetry, and NIC-side &#x27;rx_discards_phy / np_cnp_sent&#x27;.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;acknowledges_unknowns&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Hedges and asks for confirmation: &#x27;Confirm with the ML team that host 0 (11.0.0.1) is rank 0 / parameter server&#x27;, and &#x27;ask them for the RDMA NIC&#x27;s rx_discards_phy / np_cnp_sent from the host side — fabric counters say there&#x27;s nothing to retransmit, but worth corroborating.&#x27; Uses qualified language like &#x27;almost certainly&#x27;.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;coherent_investigation_order&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Structured with clear sections (&#x27;What the data shows&#x27;, &#x27;But there is a clear pattern&#x27;, &#x27;Why the network team&#x27;s initial read was correct&#x27;, &#x27;What I&#x27;d recommend before going further&#x27;) and numbered recommendation steps 1–3.&quot;
+      },
+      {
+        &quot;name&quot;: &quot;synthesizes_available_context&quot;,
+        &quot;passed&quot;: true,
+        &quot;rationale&quot;: &quot;Integrates specific entities and numbers: &#x27;host 0 (11.0.0.1)&#x27;, &#x27;15-to-1 incast&#x27;, breaks down same-leaf vs remote-leaf slowdowns (2.30×–2.63× vs 1.44×–1.53×) tied to 6,316 ns vs 26,476 ns baselines, references &#x27;25 Gb/s NIC&#x27; funnel vs &#x27;100 Gb/s&#x27; spine uplinks, and rules out hypotheses using &#x27;asymmetry.present = false&#x27;.&quot;
+      }
+    ]
+  },
+  &quot;judge_model&quot;: &quot;claude-opus-4-7&quot;
+}</pre>
+</details>
+<details class='message'>
+  <summary><strong>13.</strong> Other → Other <span class='label'>harnessit.eval.correctness</span></summary>
+  <div class='span-id'>span: <code>8508b17a6aea06d2</code></div>
+  <pre class='payload'>{
+  &quot;input&quot;: {
+    &quot;judge_model&quot;: &quot;claude-opus-4-7&quot;,
+    &quot;agent_response_length&quot;: 4481,
+    &quot;ground_truth_root_cause&quot;: &quot;Synchronized incast: 15 senders → 1 receiver at t=0.05s overwhelms host 0&#x27;s leaf-host link buffer.&quot;,
+    &quot;ground_truth_intended_symptom&quot;: &quot;Sharp tail-FCT spike on flows arriving at host 0&#x27;s leaf at t=0.05s; PFC pause counters spike on the source leaves&#x27; uplinks; recovery within hundreds of microseconds.&quot;
+  },
+  &quot;output&quot;: {
+    &quot;verdict&quot;: &quot;CORRECT&quot;,
+    &quot;agent_diagnosis_summary&quot;: &quot;A 15-to-1 synchronized incast at t=50ms targeting host 11.0.0.1&#x27;s 25 Gb/s NIC downlink, not a fabric fault.&quot;,
+    &quot;rationale&quot;: &quot;The agent commits clearly: \&quot;15 flows... all targeting 11.0.0.1... all starting at exactly t=50,000,000 ns... That&#x27;s a 15-to-1 incast\&quot; and identifies the contention point as \&quot;the destination host&#x27;s 25 Gb/s downlink.\&quot; This matches the ground-truth root cause class (synchronized incast: 15 senders → 1 receiver at t=0.05s overwhelming host 0&#x27;s leaf-host link). The operational next steps (shard the reduce, stagger iterations, hierarchical collective) align with what an SRE reading the ground truth would do, even though the agent reports zero PFC counters where ground truth expected spikes.&quot;
+  }
+}</pre>
+</details>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'default', sequence: { showSequenceNumbers: true } });
+  </script>
+</body>
+</html>
