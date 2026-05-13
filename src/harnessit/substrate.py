@@ -245,7 +245,10 @@ class DoppelgangerClient:
     ) -> dict[str, Any]:
         """Run a scenario and return per-host PHY-rx drop counters.
 
-        Each record carries (host_id, ip, if_index, drop_packets).
+        Each record carries (host_id, ip, if_index, drop_packets,
+        drops_per_million). drops_per_million is the rate of drops
+        against the leaf's host-facing tx_packets (parts per million),
+        or None when the denominator is 0 or topology is unavailable.
         Zero counts surface as ``0``, not as missing rows; the agent
         should treat zero across the fabric as "no link-layer drops
         detected," not as "missing data." Silent drops at
