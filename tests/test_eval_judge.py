@@ -121,11 +121,14 @@ def _make_judge(response: _FakeMessage | None = None, *, raise_exc: Exception | 
 
 # ---------- rubric ↔ keyword scorer parity ----------
 
-def test_rubric_criteria_match_keyword_scorer_criteria():
-    """The judge rubric must score the same four criteria as
-    score_triage_quality. Otherwise EvalResult comparisons (keyword
-    vs LLM, in the calibration table) become apples-to-oranges."""
-    # Stub a Completion + EvalContext that produces a Score with all four keys
+def test_keyword_criteria_are_subset_of_judge_criteria():
+    """The keyword scorer's criteria must be a subset of the judge's
+    rubric. The judge may have additional semantic-only criteria
+    (e.g., v0.3 added operational_stance_matches_epistemic_state and
+    hypothesis_preservation_under_insufficient_data — both
+    inherently semantic and not phrase-detectable). EvalResult
+    comparisons for the shared criteria remain apples-to-apples; the
+    judge-only criteria are LLM-judge-only by design."""
     completion = Completion(
         text="dummy", model="m", input_tokens=1, output_tokens=1, stop_reason="end_turn",
     )
@@ -134,10 +137,49 @@ def test_rubric_criteria_match_keyword_scorer_criteria():
 
     judge_criterion_names = {name for name, _description in RUBRIC_CRITERIA}
     keyword_criterion_names = set(keyword_score.criteria.keys())
-    assert judge_criterion_names == keyword_criterion_names, (
-        "Judge rubric ↔ keyword rubric drift. "
-        f"Judge has: {judge_criterion_names}. Keyword has: {keyword_criterion_names}."
+    extra_in_keyword = keyword_criterion_names - judge_criterion_names
+    assert not extra_in_keyword, (
+        "Keyword scorer has criteria the judge rubric doesn't. "
+        f"Keyword-only: {extra_in_keyword}. This breaks the calibration "
+        "table — every keyword criterion needs a matching judge criterion."
     )
+
+
+def test_v03_judge_only_criteria_present():
+    """v0.3 added two LLM-judge-only criteria. Catch accidental
+    deletion or rename of either — the verify sweep and rubric audit
+    depend on both being present."""
+    judge_criterion_names = {name for name, _description in RUBRIC_CRITERIA}
+    assert "operational_stance_matches_epistemic_state" in judge_criterion_names
+    assert "hypothesis_preservation_under_insufficient_data" in judge_criterion_names
+
+
+def test_v03_criteria_descriptions_cover_failure_modes():
+    """The two v0.3 criteria descriptions must cite the concrete failure
+    modes observed across the 10-trace cross-scenario analysis —
+    otherwise the judge has no anchor for what to FAIL on. We check
+    for concept-level substrings rather than verbatim phrases."""
+    desc_by_name = dict(RUBRIC_CRITERIA)
+
+    stance = desc_by_name["operational_stance_matches_epistemic_state"].lower()
+    # The three PASS branches
+    assert "verification" in stance
+    assert "remediation" in stance
+    assert "right-window" in stance or "temporal" in stance
+    # The four FAIL branches
+    assert "redirect" in stance
+    # Step-1 focus, not the entire action plan
+    assert "step 1" in stance
+
+    preservation = desc_by_name["hypothesis_preservation_under_insufficient_data"].lower()
+    # The five barred dismissal moves
+    assert "counterfactual" in preservation
+    assert "new distinguishing feature" in preservation
+    assert "enlarging" in preservation
+    assert "structural feature" in preservation or "idle" in preservation
+    assert "null result" in preservation
+    # The core epistemic principle
+    assert "absence-of-confirmation" in preservation
 
 
 # ---------- structured-output mechanics ----------

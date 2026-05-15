@@ -25,12 +25,12 @@ from harnessit.skills import (
 
 def test_calibrated_commitment_name_and_version_constants():
     assert CALIBRATED_COMMITMENT_NAME == "calibrated-commitment"
-    assert CALIBRATED_COMMITMENT_VERSION == "0.2"
+    assert CALIBRATED_COMMITMENT_VERSION == "0.3"
 
 
-def test_calibrated_commitment_body_mentions_six_axes():
+def test_calibrated_commitment_body_mentions_seven_axes():
     body = CALIBRATED_COMMITMENT_BODY.lower()
-    # Each of the six axes (v0.2 added fabric-health-summary) must
+    # Each of the seven axes (v0.3 added recommended-next-step) must
     # appear somewhere in the prompt body — that's the contract the
     # skill makes with the agent. If a future refactor drops an axis
     # from the body without updating the design, this test catches it.
@@ -41,32 +41,29 @@ def test_calibrated_commitment_body_mentions_six_axes():
         "symptom",
         "localization",
         "fabric-health",
+        "recommended next step",
     ):
         assert axis_term in body, f"axis {axis_term!r} missing from body"
 
 
-def test_calibrated_commitment_v02_narrows_refusal_band_to_quiescent():
-    """v0.2 design fix: the 'evidence does not support' band must only
-    fire when the fabric is genuinely quiescent. The skill body must
-    explicitly name the checklist concept (no PFC, no ECN, no drops,
-    no asymmetry, no PHY drops) to discourage the v0.1 overshoot where
-    the agent dismissed visible signal because the user's symptom
-    didn't match magnitude.
+def test_calibrated_commitment_narrows_refusal_band_to_quiescent():
+    """The 'evidence does not support' band must only fire when the
+    fabric is genuinely quiescent. The skill body must explicitly name
+    the checklist concept (no PFC, no ECN, no drops, no asymmetry,
+    no PHY drops) to discourage the v0.1-era overshoot where the agent
+    dismissed visible signal because the user's symptom didn't match
+    magnitude.
     """
     body = CALIBRATED_COMMITMENT_BODY.lower()
     assert "genuinely quiescent" in body
-    # The concrete checklist concepts must appear in the body —
-    # substring of "no X" can be split across line breaks for prose
-    # flow, so we check each concept independently rather than as a
-    # phrase.
-    body_squished = " ".join(body.split())  # collapse whitespace
+    body_squished = " ".join(body.split())
     for signal in ("no pfc", "no ecn", "no drops", "asymmetry"):
         assert signal in body_squished, (
             f"refusal-band checklist concept missing: {signal!r}"
         )
 
 
-def test_calibrated_commitment_v02_fabric_health_is_conditional():
+def test_calibrated_commitment_fabric_health_is_conditional():
     """The fabric-health summary axis is conditional — only fires
     when the confidence band is the refusal or consistent-with-data
     form. The skill body must signal this, otherwise the agent will
@@ -74,10 +71,70 @@ def test_calibrated_commitment_v02_fabric_health_is_conditional():
     not load-bearing and would crowd the analysis."""
     body = CALIBRATED_COMMITMENT_BODY.lower()
     assert "conditional" in body
-    # Conditional should specifically reference the two confidence
-    # bands where it fires.
     assert "evidence does not support" in body
     assert "consistent with data" in body
+
+
+def test_calibrated_commitment_v03_recommended_step_axis():
+    """v0.3 added axis 7: the first recommended action must distinguish
+    live alternatives, not remediate or redirect prematurely. The skill
+    body must name verification-before-remediation as the axis 7
+    contract."""
+    body = CALIBRATED_COMMITMENT_BODY.lower()
+    # Axis 7 named and motivated
+    assert "recommended next step" in body
+    # The skill must contrast verification with remediation/redirect
+    assert "remediation" in body
+    # Substrate-agnostic phrasing — should mention the two failure
+    # modes the variance pass identified
+    assert "redirect" in body
+
+
+def test_calibrated_commitment_v03_epistemic_guardrails_present():
+    """v0.3 added the Epistemic guardrails section with mandate A
+    (hypothesis preservation) and mandate B (scope exclusions
+    narrowly). Both must appear in the body."""
+    body = CALIBRATED_COMMITMENT_BODY.lower()
+    body_squished = " ".join(body.split())  # collapse line-break hyphenation
+    assert "epistemic guardrails" in body
+    # Mandate A: hypothesis preservation
+    assert "hypothesis preservation" in body
+    assert "absence-of-confirmation" in body_squished
+    # Mandate B: scope narrowly
+    assert "scope exclusions narrowly" in body
+    # The temporal-vs-mechanistic distinction is load-bearing
+    assert "temporally" in body
+    assert "mechanistically" in body
+
+
+def test_calibrated_commitment_v03_bars_dismissal_moves():
+    """The five barred dismissal moves catalogued from WRONG traces
+    must each surface in the skill body as concepts the agent should
+    not perform. We check for concept-level signals rather than
+    verbatim phrases (the body uses prose, not a bulleted enum)."""
+    body = CALIBRATED_COMMITMENT_BODY.lower()
+    # Counterfactual claims without checking
+    assert "counterfactual" in body or "without checking" in body
+    # New-asymmetry construction to preserve SPECIFIC
+    assert "new distinguishing feature" in body
+    # Localization expansion
+    assert "enlarging" in body or "encompass visible signal" in body
+    # Substrate structural features misread as fault signals
+    assert "idle" in body or "structural features" in body
+    # Within-trace null as evidence-against
+    assert "null result" in body or "within-trace" in body
+
+
+def test_calibrated_commitment_v03_normalized_rate_in_axis_5():
+    """v0.3 sharpens axis 5 (localization caveat) to require normalized-
+    rate comparison, not raw count comparison. SPECIFIC must depend on
+    per-entity normalized rate being materially distinct from peers."""
+    body = CALIBRATED_COMMITMENT_BODY.lower()
+    assert "normalized" in body
+    # The body should name at least one example denominator to
+    # illustrate substrate-agnostic instantiation
+    body_squished = " ".join(body.split())
+    assert "drops per received packet" in body_squished or "per received packet" in body_squished
 
 
 def test_calibrated_commitment_body_has_four_confidence_bands():

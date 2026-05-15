@@ -70,11 +70,63 @@ PFC, no ECN, no drops, no asymmetry, no PHY drops) — and routes the
 symptom-mismatch case to "consistent with data but not yet
 confirmed" instead.
 
-The skill body is kept compact (~300 words at v0.2, up from ~250
-at v0.1). Larger skill bodies crowd the agent's context for tool
-data; v0.2's growth is justified by the operational utility of the
-fabric-health summary axis observed in v0.1 traces where it
-appeared organically.
+v0.3 changes (2026-05-13, post k=3 variance pass + D2-field-presence
+verify):
+
+The variance pass closed at silent-drops 1/3 CORRECT under v0.2 and
+the D2 field-presence verify closed at 0/3 CORRECT — adding the
+`drops_per_million` field to the tool surface did not lift correctness
+because the field gave the agent a new lever for rationalization
+rather than fixing the reasoning. Cross-trace analysis (10 traces:
+3 CORRECT, 5 WRONG, 2 edge cases) identified two binding epistemic
+mandates that separate CORRECT from WRONG independently of the
+substrate.
+
+7. **Recommended next step (verification before remediation)** — the
+   first recommended action must be a data check that distinguishes
+   the mechanism classes currently held alive in the verdict.
+   Remediation belongs at step 2+ under any verdict where alternative
+   classes remain live. The WRONG traces consistently fail this by
+   making step 1 either a remediation chain or a redirect to a
+   different subsystem.
+
+**Epistemic guardrails (new section)**. Two moves produce
+operationally wrong stances even when the response shape looks
+complete:
+
+  - *Hypothesis preservation under insufficient data* (Guardrail A):
+    absence-of-confirmation is not presence-of-evidence-against. Five
+    barred dismissal moves catalogued from WRONG traces — assume-away,
+    new-asymmetry construction, localization expansion, substrate-
+    structural-feature-as-fault-signal, within-trace-null-as-evidence-
+    against.
+  - *Scope exclusions narrowly* (Guardrail B): under apparent fabric
+    quiescence, phrase the exclusion *temporally* (this trace window)
+    rather than *mechanistically* (the fabric is not the cause). The
+    microburst k1 CORRECT trace and hash-pol k3 WRONG trace used the
+    same "evidence does not support" confidence band; the difference
+    was temporal vs. mechanistic exclusion and what step 1 did with
+    that scoping.
+
+**Axis 5 normalization update**. The localization caveat is sharpened
+to require *normalized rate* comparison, not raw count comparison —
+SPECIFIC requires the per-entity normalized rate (drops per received
+packet, load per flow-bucket, pauses per priority, etc.) to be
+materially distinct from peers. This bars the silent-drops failure
+mode where the agent saw raw-count outliers and committed SPECIFIC
+without normalization.
+
+**Substrate-agnostic phrasing**. v0.3 deliberately strips silent-drops-
+specific example phrasings from the skill body — denominators and
+specific check phrasings vary per failure class; the agent instantiates
+per scenario. The empirical evidence behind the mandates is in the
+docstring rather than the body to keep the body transferable to
+non-silent-drops scenarios (hash-polarization, microburst, asymmetric-
+path, and future scenarios on real-hardware substrates like AIR).
+
+The skill body grew to ~485 words at v0.3 (from ~310 at v0.2) — the
+new axis and guardrails are load-bearing per the cross-trace analysis;
+growth is justified.
 """
 
 from __future__ import annotations
@@ -83,13 +135,13 @@ from dataclasses import dataclass
 
 
 CALIBRATED_COMMITMENT_NAME = "calibrated-commitment"
-CALIBRATED_COMMITMENT_VERSION = "0.2"
+CALIBRATED_COMMITMENT_VERSION = "0.3"
 
 CALIBRATED_COMMITMENT_BODY = """\
-## Skill: Calibrated Commitment (v0.2)
+## Skill: Calibrated Commitment (v0.3)
 
 When formulating your diagnosis at the end of an investigation, make
-commitment confidence explicit. Your response should make these six
+commitment confidence explicit. Your response should make these seven
 axes identifiable, in whatever order suits the flow of your reasoning:
 
 1. **Verdict.** Name the mechanism class and localization in the form
@@ -119,10 +171,8 @@ axes identifiable, in whatever order suits the flow of your reasoning:
      "consistent with data" band above.
 
 3. **Falsification conditions.** Name 1-2 specific observations that
-   would change your verdict. E.g., "if host X's PHY drops were
-   similar to other hosts, this would be sampling concentration not
-   a sick link." If you can't name what would falsify you, your
-   verdict isn't a hypothesis — it's a guess.
+   would change your verdict. If you can't name what would falsify
+   you, your verdict isn't a hypothesis — it's a guess.
 
 4. **Symptom-vs-data alignment.** If the user's reported symptom
    doesn't match what you see in the data, say so explicitly. Don't
@@ -133,10 +183,15 @@ axes identifiable, in whatever order suits the flow of your reasoning:
    "consistent with data" band when there IS visible signal.
 
 5. **Localization caveat.** When committing to a specific entity
-   (host, port, link), note whether the data supports SPECIFIC vs
-   CLASS localization. E.g., "host 16 is the heaviest accumulator
-   of PHY drops, but this could also be uniform corruption with
-   traffic concentration on host 16."
+   (host, port, link, switch), note whether the data supports
+   SPECIFIC vs CLASS localization. SPECIFIC requires that the
+   per-entity *normalized* rate (not raw counts) is materially
+   distinct from peers on the denominator appropriate for this
+   failure class — drops per received packet for PHY corruption,
+   load per flow-bucket for ECMP hashing, pauses per priority for
+   QoS misconfig, etc. If the normalized rate is comparable across
+   peers, the verdict is CLASS-level with SPECIFIC named as a
+   downgraded possibility, not the other way around.
 
 6. **Fabric-health summary** (CONDITIONAL — include only when your
    confidence level is *evidence does not support* or *consistent
@@ -144,18 +199,59 @@ axes identifiable, in whatever order suits the flow of your reasoning:
    about fabric state: which subsystems show no anomalies, which (if
    any) show worth-noting-but-not-diagnostic signals, and what the
    SRE can rule out from this trace even without a committed
-   diagnosis. Example: "What's clear from this trace: PFC clean
-   across all switches; ECN marks within normal incast bounds; no
-   host PHY drops above noise. What's worth noting but not
-   diagnostic: leaf-0's uplinks show ~1.6x packet imbalance, real
-   but small-sample." A NO_DIAGNOSIS response that gives the SRE
-   nothing actionable is operationally weaker than one that provides
-   a partial fabric picture alongside the refusal.
+   diagnosis. A NO_DIAGNOSIS response that gives the SRE nothing
+   actionable is operationally weaker than one that provides a
+   partial fabric picture alongside the refusal.
 
-Aim for honest commitment: commit hard when evidence supports it,
-hedge specifically when symptom-vs-data ambiguity exists alongside
-visible signal, and refuse explicitly only when the fabric itself
-is quiescent.
+7. **Recommended next step — type must match epistemic state.** The
+   first recommended action must be a data check whose outcome would
+   distinguish the mechanism classes currently held alive in your
+   verdict. Remediation (swap optic, replace cable, change config)
+   belongs at step 2+ under any verdict where alternative classes
+   remain live. Redirect to a different subsystem ("check the host
+   side", "look at the application layer") belongs at step 2+ unless
+   you have *quantitatively eliminated* the current class — not
+   merely failed to confirm it within this trace window.
+
+## Epistemic guardrails
+
+Two moves produce operationally wrong stances even when the response
+shape above looks complete. Bar them.
+
+**A. Hypothesis preservation under insufficient data.** If visible
+signal in the trace is *consistent with* a mechanism class but the
+trace cannot *confirm* it, that class stays alive in your verdict
+(as CLASS-level, named-as-alternative, or both). Absence-of-confirmation
+is not presence-of-evidence-against. Specifically barred:
+
+- Counterfactual claims about the substrate used without checking
+  ("the counters don't show X, so X isn't happening")
+- Constructing a new distinguishing feature to preserve a SPECIFIC
+  localization when the normalized rate is comparable to peers
+- Enlarging the localized hypothesis to encompass visible signal
+  while still excluding the broader class
+- Misreading substrate structural features (which entities are
+  silent, which links saw traffic) as fault asymmetry signals —
+  quiet entities may simply be idle, not healthy
+- Using a within-trace null result as license to exclude the class
+  ("the imbalance doesn't correlate with FCT, so it isn't the
+  cause") when the trace window or volume is too small to test
+
+If the trace cannot distinguish a candidate class from your
+preferred verdict, the candidate stays in the response.
+
+**B. Scope exclusions narrowly.** When the fabric appears quiescent,
+phrase the exclusion *temporally* (the fabric is healthy in this
+trace window), not *mechanistically* (the fabric is not the cause of
+your symptom). Under temporal exclusion, step 1 is the right-window
+capture or correlation that would actually test fabric involvement
+during the incident — not a redirect to a different subsystem.
+
+Aim for honest commitment: commit hard when evidence is overwhelming
+and alternatives are quantitatively eliminated; hedge specifically
+when visible signal is consistent with multiple classes; refuse
+explicitly only when the fabric is genuinely quiescent in the window
+of interest and you have asked for the right window if needed.
 """
 
 

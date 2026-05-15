@@ -105,7 +105,13 @@ class Judgment:
         )
 
 
-# Four criteria mirroring harnessit.eval.scoring.score_triage_quality.
+# Seven criteria — the first five mirror harnessit.eval.scoring.score_triage_quality
+# (keyword scorer has corresponding patterns). Criteria 6 and 7 are LLM-judge-only,
+# added 2026-05-13 alongside Calibrated Commitment v0.3 to catch failure modes the
+# original 5 criteria can pass through. The keyword scorer has no matching patterns
+# for these (they're inherently semantic — "does step 1 match the verdict's
+# epistemic state?" doesn't reduce to phrase detection). The judge↔keyword parity
+# test was relaxed from "==" to "keyword ⊆ judge" to accommodate.
 # Description text is what the judge sees in its prompt; keep it sharp.
 RUBRIC_CRITERIA: tuple[tuple[str, str], ...] = (
     (
@@ -174,6 +180,149 @@ RUBRIC_CRITERIA: tuple[tuple[str, str], ...] = (
         "recognition or quantitative reasoning about the symptom itself; but it's "
         "harder, and that's the point — synthesis is genuinely scarcer when context "
         "is scarcer."
+    ),
+    (
+        "operational_stance_matches_epistemic_state",
+        "Does the first recommended action match the epistemic state the verdict "
+        "claims? A response can be structurally clean (axes legible, alternatives "
+        "named, falsification listed) but still recommend a step 1 that contradicts "
+        "its own stated uncertainty — that's the failure mode this criterion catches.\n\n"
+        "PROCEDURE — apply in order:\n"
+        "1. Find the verdict text. Quote in your rationale.\n"
+        "2. Classify the verdict's exclusion mode (if any):\n"
+        "   - TEMPORAL: phrased as 'in this trace', 'in this window', 'this capture "
+        "doesn't show', explicitly scoping the claim to the data at hand. Does NOT "
+        "make a mechanism-level claim about the broader system.\n"
+        "   - MECHANISTIC: phrased as 'not a fabric-side mechanism', 'not the "
+        "cause', 'evidence does not support a fabric-side diagnosis' — without "
+        "'in this trace' or equivalent temporal scoping. This commits to the class "
+        "being out, not just absent from this capture.\n"
+        "   - NONE: no exclusion, multiple classes held alive.\n"
+        "3. Identify step 1 (the FIRST recommended action). Quote its first sentence "
+        "verbatim in your rationale.\n"
+        "4. Apply PASS/FAIL conditions below.\n\n"
+        "PASS if step 1 fits one of:\n"
+        "(a) verification distinguishing live alternatives, when the verdict names a "
+        "CLASS-level hypothesis or holds multiple mechanism classes alive. Step 1 "
+        "must distinguish the preferred verdict from any named alternative that, if "
+        "true, would change the recommended remediation — not merely confirm the "
+        "preferred hypothesis (e.g., 'compute drops-per-rx-packet for each host to "
+        "distinguish hot-receiver from sick-link', 'per-flow FCT labeled by spine to "
+        "confirm ECMP polarization');\n"
+        "(b) remediation when alternatives have been quantitatively eliminated and "
+        "the verdict is high confidence with corroborating evidence (e.g., 'restore "
+        "spine 0 to line rate' when the topology explicitly declares "
+        "slow_spine_indices=[0] and the bimodal FCT matches predicted shape);\n"
+        "(c) right-window capture or correlation when the verdict's exclusion is "
+        "TEMPORAL (per step 2 above) — phrased explicitly as 'fabric is healthy IN "
+        "THIS TRACE'. Step 1 must then be a focused fabric-side test during the "
+        "right window. Bifurcated step 1 ('capture fabric trace OR correlate with "
+        "host telemetry') that does not lead with the fabric test, OR that frames "
+        "the next step as 'if clean → look upstream', does NOT qualify as (c).\n\n"
+        "FAIL if step 1:\n"
+        "(a) remediates under a verdict where alternative classes remain live "
+        "(e.g., 'swap the optic on host 16' when the localization caveat names "
+        "CLASS-level uniform corruption as an alternative);\n"
+        "(b) redirects to a different subsystem ('look upstream', 'check the host "
+        "side', 'investigate the application layer') under MECHANISTIC exclusion "
+        "(per step 2 above) when the class has not been quantitatively eliminated — "
+        "only failed to confirm in this trace. The mere presence of 'capture fabric "
+        "trace' as one half of a bifurcated step does not save the response when "
+        "the verdict is mechanistic-exclusion and the follow-up framing is 'if "
+        "clean → upstream';\n"
+        "(c) verifies only the preferred hypothesis without distinguishing it from "
+        "any named alternative that, if true, would change the recommended "
+        "remediation (e.g., 'check FEC counters on leaf-0 ports' when fabric-wide "
+        "corruption is consistent with visible signal even if not explicitly named "
+        "as an alternative in the verdict — leaf-0-localized testing cannot "
+        "distinguish leaf-0-specific from fabric-wide);\n"
+        "(d) is unstructured prose with no identifiable first action.\n\n"
+        "ANTI-CHARITY GUIDANCE. Do not credit a response for naming an alternative "
+        "in a falsification condition or localization caveat when the verdict text "
+        "itself commits past that alternative. A response that says 'sender-side, "
+        "not fabric-side' as the verdict and then lists ECMP polarization in "
+        "falsification conditions is MECHANISTIC exclusion — falsification "
+        "conditions name what would change the verdict, meaning the class is "
+        "currently excluded. Step 1 must still treat the excluded class seriously "
+        "to PASS.\n\n"
+        "When the response includes multiple recommended actions, judge step 1 alone "
+        "— but read step 1's full text including any 'if X then Y' framing, since "
+        "the framing reveals the operational intent of the entire action plan."
+    ),
+    (
+        "hypothesis_preservation_under_insufficient_data",
+        "Does the verdict preserve mechanism classes that visible signal in the "
+        "trace is consistent with but the trace cannot conclusively confirm? This "
+        "criterion catches premature class-exclusion: the agent commits to a verdict "
+        "that excludes a class without quantitatively eliminating it.\n\n"
+        "PROCEDURE — apply in order:\n"
+        "1. Identify the verdict's primary mechanism class commitment. Quote in "
+        "your rationale.\n"
+        "2. Identify what visible signal in the trace is being interpreted (e.g., "
+        "'hosts 0-10 and 16 all show ~1000-1400 drops_per_million', '1.56× uplink "
+        "imbalance across spines'). Quote the signal.\n"
+        "3. List the mechanism classes that signal is consistent with. Visible "
+        "signal that is rate-uniform across peers is consistent with both a "
+        "localized class (one bad component) AND a broader class (uniform fault "
+        "across many components). Visible asymmetry in per-port or per-host "
+        "counters is consistent with both 'this entity is sick' and 'this entity "
+        "is just busier'. Visible imbalance with insufficient correlation data is "
+        "consistent with both 'imbalance matters' and 'imbalance is benign'.\n"
+        "4. For each class consistent with the signal, check whether the VERDICT "
+        "names it alive (as primary or as a named alternative IN THE VERDICT TEXT "
+        "itself or the LOCALIZATION CAVEAT — not merely in falsification "
+        "conditions, which name what would change the verdict and therefore "
+        "indicate the class is currently excluded).\n"
+        "5. If a consistent class is missing from the verdict, check whether the "
+        "exclusion is by quantitative elimination (e.g., rate computation showing "
+        "10× peer-rate divergence rules out hot-receiver) OR by one of the barred "
+        "dismissal moves (a-e below). FAIL if by a barred move.\n\n"
+        "PASS conditions:\n"
+        "- Multiple classes consistent with visible signal are named alive in the "
+        "verdict (CLASS-level + SPECIFIC-as-named-alternative, or "
+        "SPECIFIC-with-CLASS-as-named-alternative).\n"
+        "- The verdict commits at high confidence to a single class AND alternatives "
+        "have been quantitatively eliminated (rate computation, topology "
+        "declaration, signature-shape match).\n"
+        "- The verdict explicitly hedges to NO_DIAGNOSIS or 'consistent with data "
+        "but not yet confirmed' and keeps multiple classes open.\n\n"
+        "FAIL conditions — verdict commits to exclusion of a class consistent with "
+        "visible signal, supported by one of these moves rather than quantitative "
+        "elimination:\n"
+        "(a) counterfactual claims about the substrate used without checking — e.g., "
+        "'the counters don't show host X as a hot receiver' when no rate computation "
+        "was performed;\n"
+        "(b) constructing a new distinguishing feature to preserve a SPECIFIC "
+        "localization after rate-comparable peers are seen — e.g., 'host 16 is the "
+        "only host past the burst sources with any drops at all' used to argue "
+        "against fabric-wide uniformity;\n"
+        "(c) enlarging the localized hypothesis to encompass the visible signal "
+        "while still excluding the broader class — e.g., a verdict expanded from "
+        "'host 16 sick' to 'leaf-0 access edge sick' that absorbs the uniform-rate "
+        "hosts 0-10 but does NOT name fabric-wide uniform corruption as an "
+        "alternative in the verdict or localization caveat. Within-leaf "
+        "alternatives ('one bad uplink vs N independent host NICs') are not "
+        "sufficient preservation when the broader fabric-wide alternative is "
+        "consistent with the same signal;\n"
+        "(d) misreading substrate structural features as fault asymmetry signals — "
+        "e.g., 'hosts 11-15 are clean' treating idle hosts that didn't send traffic "
+        "as evidence the fabric is fine in their region;\n"
+        "(e) using a within-trace null result as evidence-against — e.g., '1.56× "
+        "uplink imbalance doesn't correlate with FCT in this trace, so ECMP "
+        "polarization isn't the cause' when the trace has only 32 flows (too few "
+        "to test correlation), and using this to exclude ECMP polarization from the "
+        "verdict.\n\n"
+        "ANTI-CHARITY GUIDANCE. Falsification conditions are NOT preservation. A "
+        "response that says 'sender-side, not fabric-side' as the verdict and then "
+        "names 'ECMP polarization' as a falsification condition has EXCLUDED ECMP "
+        "polarization from the verdict — the falsification condition names what "
+        "would change the verdict, meaning the class is currently out. For "
+        "preservation, the class must be alive in the verdict text or localization "
+        "caveat as a current possibility, not merely as a counterfactual.\n\n"
+        "Absence-of-confirmation is not presence-of-evidence-against. If the trace "
+        "cannot distinguish a candidate class from the agent's preferred verdict, "
+        "the candidate must remain in the response. Quantitative elimination is the "
+        "only valid path to class-exclusion under ambiguity."
     ),
 )
 
@@ -385,6 +534,14 @@ class Judge:
         )
 
         try:
+            # Note: Opus 4.7 deprecated the `temperature` parameter
+            # (BadRequest if set). The judge therefore runs at the
+            # model's built-in sampling regime, which is moderately
+            # stochastic — calibration against 5 anchor traces showed
+            # per-criterion verdict noise (3/5 ↔ 4/5 ↔ 5/5 across
+            # runs) while overall_pass remained stable. For v0.3
+            # verify-sweep work this is acceptable: the sweep's k=3
+            # design absorbs judge variance at the cell level.
             response = await asyncio.to_thread(
                 self._client.messages.create,
                 model=self.model,
